@@ -1,0 +1,509 @@
+{
+  "version": "0.36.0",
+  "artifacts": {
+    "SimpleStack": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://unknown-account/unknown-region",
+      "properties": {
+        "templateFile": "SimpleStack.template.json"
+      },
+      "metadata": {
+        "/SimpleStack/VPC/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCB9E5F0B4",
+            "trace": [
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:220:25)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet1/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet1SubnetB4246D30",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:511:24)",
+              "new PublicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:605:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:440:42)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet1/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet1RouteTableFEE4B781",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:526:23)",
+              "new PublicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:605:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:440:42)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet1/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet1RouteTableAssociation0B0896DC",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:531:9)",
+              "new PublicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:605:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:440:42)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet1/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet1DefaultRoute91CEF279",
+            "trace": [
+              "PublicSubnet.addDefaultInternetRoute (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:551:23)",
+              "Vpc.publicSubnets.forEach.publicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:249:30)",
+              "Array.forEach (<anonymous>)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:248:32)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet1/EIP": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet1EIP6AD938E8",
+            "trace": [
+              "PublicSubnet.addNatGateway (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:616:27)",
+              "Vpc.createNatGateways (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:399:33)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:252:18)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet1/NATGateway": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet1NATGatewayE0556630",
+            "trace": [
+              "PublicSubnet.addNatGateway (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:614:21)",
+              "Vpc.createNatGateways (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:399:33)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:252:18)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet2/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet2Subnet74179F39",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:511:24)",
+              "new PublicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:605:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:440:42)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet2/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet2RouteTable6F1A15F1",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:526:23)",
+              "new PublicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:605:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:440:42)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet2/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet2RouteTableAssociation5A808732",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:531:9)",
+              "new PublicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:605:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:440:42)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet2/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet2DefaultRouteB7481BBA",
+            "trace": [
+              "PublicSubnet.addDefaultInternetRoute (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:551:23)",
+              "Vpc.publicSubnets.forEach.publicSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:249:30)",
+              "Array.forEach (<anonymous>)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:248:32)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet2/EIP": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet2EIP4947BC00",
+            "trace": [
+              "PublicSubnet.addNatGateway (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:616:27)",
+              "Vpc.createNatGateways (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:399:33)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:252:18)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PublicSubnet2/NATGateway": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPublicSubnet2NATGateway3C070193",
+            "trace": [
+              "PublicSubnet.addNatGateway (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:614:21)",
+              "Vpc.createNatGateways (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:399:33)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:252:18)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet1/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet1Subnet8BCA10E0",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:511:24)",
+              "new PrivateSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:632:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:445:43)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet1/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet1RouteTableBE8A6027",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:526:23)",
+              "new PrivateSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:632:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:445:43)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet1/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet1RouteTableAssociation347902D1",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:531:9)",
+              "new PrivateSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:632:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:445:43)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet1/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet1DefaultRouteAE1D6490",
+            "trace": [
+              "PrivateSubnet.addDefaultNatRoute (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:579:23)",
+              "Vpc.privateSubnets.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:260:31)",
+              "Array.forEach (<anonymous>)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:253:33)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet2/Subnet": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet2SubnetCFCDAA7A",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:511:24)",
+              "new PrivateSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:632:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:445:43)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet2/RouteTable": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet2RouteTable0A19E10E",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:526:23)",
+              "new PrivateSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:632:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:445:43)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet2/RouteTableAssociation": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet2RouteTableAssociation0C73D413",
+            "trace": [
+              "new Subnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:531:9)",
+              "new PrivateSubnet (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:632:9)",
+              "availabilityZones.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:445:43)",
+              "Array.forEach (<anonymous>)",
+              "Vpc.createSubnetResources (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:424:32)",
+              "Vpc.createSubnets (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:420:18)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:238:14)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/PrivateSubnet2/DefaultRoute": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCPrivateSubnet2DefaultRouteF4F5CFD2",
+            "trace": [
+              "PrivateSubnet.addDefaultNatRoute (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:579:23)",
+              "Vpc.privateSubnets.forEach (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:260:31)",
+              "Array.forEach (<anonymous>)",
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:253:33)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/IGW": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCIGWB7E252D3",
+            "trace": [
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:242:25)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ],
+        "/SimpleStack/VPC/VPCGW": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "VPCVPCGW99B986DC",
+            "trace": [
+              "new Vpc (/mnt/c/programming/repos/cdk/node_modules/@aws-cdk/aws-ec2/lib/vpc.js:244:25)",
+              "new SimpleStack (/mnt/c/programming/repos/cdk/app_1.js:9:7)",
+              "Object.<anonymous> (/mnt/c/programming/repos/cdk/app_1.js:14:1)",
+              "Module._compile (internal/modules/cjs/loader.js:816:30)",
+              "Object.Module._extensions..js (internal/modules/cjs/loader.js:827:10)",
+              "Module.load (internal/modules/cjs/loader.js:685:32)",
+              "Function.Module._load (internal/modules/cjs/loader.js:620:12)",
+              "Function.Module.runMain (internal/modules/cjs/loader.js:877:12)",
+              "internal/main/run_main_module.js:21:11"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "runtime": {
+    "libraries": {
+      "@aws-cdk/core": "1.8.0",
+      "@aws-cdk/cx-api": "1.8.0",
+      "@aws-cdk/aws-ec2": "1.8.0",
+      "@aws-cdk/aws-iam": "1.8.0",
+      "@aws-cdk/region-info": "1.8.0",
+      "@aws-cdk/aws-ssm": "1.8.0",
+      "@aws-cdk/aws-cloudwatch": "1.8.0",
+      "jsii-runtime": "node.js/v11.15.0"
+    }
+  }
+}

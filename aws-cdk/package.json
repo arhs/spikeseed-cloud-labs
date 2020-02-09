@@ -1,0 +1,14 @@
+{
+  "name": "cdk",
+  "version": "0.0.1",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-cdk/aws-budgets": "1.8.0",
+    "@aws-cdk/aws-ec2": "1.8.0",
+    "@aws-cdk/aws-elasticloadbalancingv2": "1.8.0",
+    "@aws-cdk/core": "1.8.0"
+  },
+  "devDependencies": {
+    "aws-cdk": "1.8.0"
+  }
+}

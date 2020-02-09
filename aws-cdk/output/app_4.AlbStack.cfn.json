@@ -1,0 +1,51 @@
+{
+  "Resources": {
+    "LB8A12904C": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme": "internet-facing",
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "LBSecurityGroup8A41EA2B",
+              "GroupId"
+            ]
+          }
+        ],
+        "Subnets": [
+          {
+            "Fn::ImportValue": "VpcStack:ExportsOutputRefVPCWebSubnet1Subnet979DF58AB2ED3AB9"
+          },
+          {
+            "Fn::ImportValue": "VpcStack:ExportsOutputRefVPCWebSubnet2Subnet8D2DA0FCAEE09F94"
+          }
+        ],
+        "Type": "application"
+      },
+      "Metadata": {
+        "aws:cdk:path": "AlbStack/LB/Resource"
+      }
+    },
+    "LBSecurityGroup8A41EA2B": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Automatically created Security Group for ELB AlbStackLB5F2548C1",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "255.255.255.255/32",
+            "Description": "Disallow all traffic",
+            "FromPort": 252,
+            "IpProtocol": "icmp",
+            "ToPort": 86
+          }
+        ],
+        "VpcId": {
+          "Fn::ImportValue": "VpcStack:ExportsOutputRefVPCB9E5F0B4BD23A326"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "AlbStack/LB/SecurityGroup/Resource"
+      }
+    }
+  }
+}

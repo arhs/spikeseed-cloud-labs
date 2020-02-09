@@ -1,0 +1,31 @@
+Resources:
+  Budget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: 1000
+          Unit: USD
+        BudgetType: COST
+        CostFilters:
+          Service:
+            - Amazon Elastic Compute Cloud - Compute
+            - Amazon Elastic Block Store
+          TagKeyValue:
+            - user:Application$MyApp
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification:
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - Address: my@email.com
+              SubscriptionType: EMAIL
+    Metadata:
+      aws:cdk:path: BudgetStack/Budget
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Modules: aws-cdk=1.8.0,@aws-cdk/aws-budgets=1.8.0,@aws-cdk/core=1.8.0,@aws-cdk/cx-api=1.8.0,jsii-runtime=node.js/v11.15.0
