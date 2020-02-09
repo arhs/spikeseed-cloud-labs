@@ -1,0 +1,327 @@
+Parameters:
+
+  AccountName:
+    Description: Name of the Account
+    Type: String
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  VpcId:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
+  AlbSubnets:
+    Description: Subnets to deploy the ALB
+    Type: List<AWS::EC2::Subnet::Id>
+  ReverseProxySubnets:
+    Description: Subnets to deploy the Reverse Proxy
+    Type: List<AWS::EC2::Subnet::Id>
+  PublicHostedZoneId:
+    Description: Public Hosted Zone ID
+    Type: AWS::Route53::HostedZone::Id
+  AlbCertificateArn:
+    Description: ALB SSL Certificate
+    Type: String
+  AppMinSize:
+    Description: The minimum size of the auto scaling group for the Reverse Proxy
+    Type: String
+  AppMaxSize:
+    Description: The maximum size of the auto scaling group for the Reverse Proxy
+    Type: String
+  AppDesiredCapacity:
+    Description: The desired capacity of the auto scaling group for the Reverse Proxy
+    Type: String
+  AssetsBucketName:
+    Description: Name of the Assets Bucket
+    Type: String
+  FrontendBucketName:
+    Description: Name of the Bucket containing the Frontend resources
+    Type: String
+  PublicDns:
+    Description: External DNS of the Application
+    Type: String
+  ReverseProxyDns:
+    Description: DNS of the Reverse Proxy
+    Type: String
+  KeyPairName:
+    Description: Reverse Proxy SSH Key Pair
+    Type: String
+  ReverseProxyAmiId:
+    Description: Reverse Proxy AMI ID
+    Type: String
+  ReverseProxyInstanceType:
+    Description: Reverse Proxy instance type
+    Type: String
+  VpcDnsServerIp:
+    Description: VPC internal DNS Server IP
+    Type: String
+  SecurityToken:
+    Description: Identify the request to the ALB as coming from an authorized source
+    Type: String
+
+Conditions:
+  isUsEast1: !Equals [ !Ref 'AWS::Region', 'us-east-1' ]
+
+Resources:
+
+  ReverseProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Application}-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      Policies:
+        - PolicyName: !Sub ${Application}-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                Resource:
+                  - !Sub arn:aws:s3:::${AssetsBucketName}
+                  - !Sub arn:aws:s3:::${AssetsBucketName}/*
+
+  ReverseProxyInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${Application}-instance-profile
+      Path: /
+      Roles:
+        - !Ref ReverseProxyRole
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-alb
+      GroupDescription: Allows access to the Reverse Proxy ALB
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-alb
+
+  AlbHttpsCloudfrontGSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-alb-cloudfront-global-https
+      GroupDescription: Cloudfront Global HTTPS
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-alb-cloudfront-global-https
+        - Key: SecurityGroupType
+          Value: cloudfront_g
+        - Key: AutoUpdate
+          Value: true
+        - Key: Protocol
+          Value: https
+
+  AlbHttpsCloudfrontRSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-alb-cloudfront-regional-https
+      GroupDescription: Cloudfront Regional HTTPS
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-alb-cloudfront-regional-https
+        - Key: SecurityGroupType
+          Value: cloudfront_r
+        - Key: AutoUpdate
+          Value: true
+        - Key: Protocol
+          Value: https
+
+  ReverseProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}
+      GroupDescription: Allows access to the Reverse Proxy
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref AlbSecurityGroup
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          Description: Allow Connection from the Reverse Proxy ALB
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}
+
+  ReverseProxyLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref AlbSubnets
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 100
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+        - !Ref AlbHttpsCloudfrontGSG
+        - !Ref AlbHttpsCloudfrontRSG
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-alb
+
+  ReverseProxyTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      HealthCheckPath: /elb/status
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 15
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: 200
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 101
+
+  HttpsAppListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: 403
+      LoadBalancerArn: !Ref ReverseProxyLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref AlbCertificateArn
+
+  HttpsSecuredListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ReverseProxyTargetGroup
+      Conditions:
+        - Field: http-header
+          HttpHeaderConfig:
+            HttpHeaderName: x-com-token
+            Values:
+              - !Ref SecurityToken
+      ListenerArn: !Ref HttpsAppListener
+      Priority: 1
+
+  ReverseProxyLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn: !GetAtt ReverseProxyInstanceProfile.Arn
+        KeyName: !Ref KeyPairName
+        ImageId: !Ref ReverseProxyAmiId
+        InstanceType: !Ref ReverseProxyInstanceType
+        SecurityGroupIds:
+          - !GetAtt ReverseProxySecurityGroup.GroupId
+        TagSpecifications:
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: !Sub ${AccountCode}-${RegionCode}-${Application}-volume
+        UserData:
+          Fn::Base64:
+            Fn::Sub:
+              - |
+                #!/bin/bash
+
+                echo "Updating OS"
+                yum update -y
+                yum install -y epel-release
+                yum update -y
+
+                echo "Installing SSM Agent"
+                yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+                systemctl enable amazon-ssm-agent
+
+                echo "Installing pip"
+                curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+                python get-pip.py
+                rm -f get-pip.py
+
+                echo "Installing AWS CLI"
+                pip install awscli --upgrade
+
+                echo "Adding cloud-init logging output"
+                echo "output: {all: '| tee -a /var/log/cloud-init-output.log'}" >> /etc/cloud/cloud.cfg.d/05_logging.cfg
+
+                echo "Installing Nginx"
+                aws s3 cp s3://${AssetsBucketName}/nginx/nginx.repo /etc/yum.repos.d/nginx.repo
+                chown root:root /etc/yum.repos.d/nginx.repo
+                chmod 644 /etc/yum.repos.d/nginx.repo
+                yum install -y nginx-1.17.7
+                systemctl stop nginx
+
+                export UD_NGINX_RESOLVER="${VpcDnsServerIp}"
+                export UD_SERVER_NAME="${PublicDns}"
+                export UD_FRONTEND="${FrontendDns}"
+
+                mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.old
+                aws s3 cp s3://${AssetsBucketName}/nginx/conf/nginx.conf.tpl /tmp/nginx.conf.tpl
+                aws s3 cp s3://${AssetsBucketName}/nginx/conf/app.conf.tpl /tmp/app.conf.tpl
+                envsubst '$UD_NGINX_RESOLVER' < /tmp/nginx.conf.tpl > /etc/nginx/nginx.conf
+                envsubst '$UD_SERVER_NAME,$UD_FRONTEND' < /tmp/app.conf.tpl > /etc/nginx/conf.d/app.conf
+
+                systemctl enable nginx
+                systemctl start nginx
+
+                echo "Provisioning DONE"
+              - FrontendDns: !If [ isUsEast1, !Sub '${FrontendBucketName}.s3.amazonaws.com', !Sub '${FrontendBucketName}.s3-${AWS::Region}.amazonaws.com' ]
+
+  AppAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref ReverseProxySubnets
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ReverseProxyLaunchTemplate
+        Version: !GetAtt ReverseProxyLaunchTemplate.LatestVersionNumber
+      MinSize: !Ref AppMinSize
+      MaxSize: !Ref AppMaxSize
+      DesiredCapacity: !Ref AppDesiredCapacity
+      HealthCheckType: EC2 # ELB
+      HealthCheckGracePeriod: 300
+      TargetGroupARNs:
+        - !Ref ReverseProxyTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}
+          PropagateAtLaunch: true
+
+  ReverseProxyRecord:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      RecordSets:
+        - Name: !Ref ReverseProxyDns
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ReverseProxyLoadBalancer.DNSName
+            HostedZoneId: !GetAtt ReverseProxyLoadBalancer.CanonicalHostedZoneID

@@ -1,0 +1,28 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    cloudfront_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-cloudfront-hijack"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# Cloudfront
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ cloudfront_stack_name }}"
+      cloudformation:
+        stack_name: "{{ cloudfront_stack_name }}"
+        state: present
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        template: "cloudfront.cfn.yml"
+        tags:
+          Name: "{{ cloudfront_stack_name }}"
+        template_parameters:
+          ApplicationDns: "{{ config.reverseproxy_dns }}"

@@ -1,0 +1,56 @@
+---
+aws_regions:
+  'ca-central-1':
+    code: cc1
+  'eu-central-1':
+    code: ec1
+  'eu-west-1':
+    code: ew1
+  'eu-west-2':
+    code: ew2
+  'eu-west-3':
+    code: ew3
+  'eu-north-1':
+    code: en1
+  'us-east-1':
+    code: ue1
+  'us-east-2':
+    code: ue2
+  'us-west-1':
+    code: uw1
+  'us-west-2':
+    code: uw2
+  'sa-east-1':
+    code: se1
+
+default_aws_region: eu-west-1
+default_aws_region_code: ew1
+required_aws_region: us-east-1
+required_aws_region_code: ue1
+
+account_name: spikeseed-labs
+account_code: l
+application: cloubfrontalblab
+
+config:
+  public_hosted_zone_id: <public_hosted_zone_id>
+  public_dns: <example.com>
+  vpc_cidr: 10.68.2.0/23
+  public_subnet_cidr: 10.68.2.0/24
+  public_subnet_az1_cidr: 10.68.2.0/26
+  public_subnet_az2_cidr: 10.68.2.64/26
+  private_subnet_cidr: 10.68.2.128/24
+  private_subnet_az1_cidr: 10.68.2.128/26
+  private_subnet_az2_cidr: 10.68.3.192/26
+  assets_bucket_name: cloubfrontalblab-assets
+  frontend_bucket_name: cloubfrontalblab-frontend
+  cloudfront_certificate_arn: <cloudfront_certificate_arn>
+  reverseproxy_dns: <app.example.com>
+  reverseproxy_certificate_arn: <reverseproxy_certificate_arn>
+  reverseproxy_ami_id: ami-0ff760d16d9497662 # CentOS 7 - Need to subcribe https://aws.amazon.com/marketplace/pp?sku=aw0evgkw8e5c1q413zgy5pjce
+  reverseproxy_instance_type: t3.nano
+  reverseproxy_key_pair: cloubfrontalblab
+  reverseproxy_asg_min_size: 1
+  reverseproxy_asg_max_size: 1
+  reverseproxy_asg_desired_capacity: 1
+  security_token: 333668be-7805-40f6-ba0a-8f51be5e2980

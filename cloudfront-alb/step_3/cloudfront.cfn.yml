@@ -1,0 +1,120 @@
+Parameters:
+
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  PublicDns:
+    Description: Public DNS
+    Type: String
+  ReverseProxyDns:
+    Description: Reverse Proxy DNS
+    Type: String
+  CertificateArn:
+    Description: SSL Certificate ARN
+    Type: String
+  PublicHostedZoneId:
+    Description: Public Hosted Zone Id
+    Type: AWS::Route53::HostedZone::Id
+  SecurityToken:
+    Description: Identify the request to the ALB as coming from an authorized source
+    Type: String
+
+Resources:
+
+Resources:
+
+  WafValidHostsCondition:
+    Type: AWS::WAF::ByteMatchSet
+    Properties:
+      Name: !Sub ${AccountCode}-${RegionCode}-${Application}-waf-validhosts
+      ByteMatchTuples:
+        - FieldToMatch:
+            Type: HEADER
+            Data: host
+          TargetString: !Ref PublicDns
+          TextTransformation: NONE
+          PositionalConstraint: EXACTLY
+
+  WafValidHostsRule:
+    Type: AWS::WAF::Rule
+    Properties:
+      Name: !Sub ${AccountCode}-${RegionCode}-${Application}-waf-validhosts-rule
+      MetricName: WafValidHostsRule
+      Predicates:
+        - DataId: !Ref WafValidHostsCondition
+          Negated: true
+          Type: ByteMatch
+
+  WebAcl:
+    Type: AWS::WAF::WebACL
+    Properties:
+      Name: !Sub ${AccountCode}-${RegionCode}-${Application}-globalwebacl
+      DefaultAction:
+        Type: ALLOW
+      MetricName: GlobalWebACL
+      Rules:
+        - Action:
+            Type: BLOCK
+          Priority: 1
+          RuleId: !Ref WafValidHostsRule
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        PriceClass: PriceClass_100
+        Aliases:
+          - !Ref PublicDns
+        HttpVersion: http2
+        WebACLId: !Ref WebAcl
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1
+          SslSupportMethod: sni-only
+        Origins:
+          - Id: ReverseProxy
+            DomainName: !Ref ReverseProxyDns
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginReadTimeout: 60
+            OriginCustomHeaders:
+              - HeaderName: x-com-token
+                HeaderValue: !Ref SecurityToken
+        Enabled: true
+        DefaultRootObject: index.html
+        CustomErrorResponses:
+          - ErrorCachingMinTTL: 0
+            ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        DefaultCacheBehavior:
+          TargetOriginId: ReverseProxy
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Headers:
+              - Host
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+
+  CloudfrontRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      RecordSets:
+        - Name: !Ref PublicDns
+          Type: A
+          AliasTarget:
+            HostedZoneId: Z2FDTNDATAQYW2
+            DNSName: !GetAtt CloudFrontDistribution.DomainName

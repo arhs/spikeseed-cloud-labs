@@ -1,0 +1,149 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    buckets_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-buckets"
+
+    vpc_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-vpc"
+    reverseproxy_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-reverseproxy"
+    frontend_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-frontend"
+    cloudfront_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-cloudfront"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# Setting facts for external Resources
+# ======================================================================================================================
+
+    - name: "Get facts on {{ buckets_stack_name }}"
+      check_mode: no
+      cloudformation_facts:
+        stack_name: "{{ buckets_stack_name }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        stack_resources: yes
+      failed_when: cloudformation[buckets_stack_name] is undefined
+
+    - name: "Set fact for {{ buckets_stack_name }}"
+      set_fact:
+        buckets_stack: "{{ cloudformation[buckets_stack_name] }}"
+
+# ======================================================================================================================
+# VPC
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ vpc_stack_name }}"
+      cloudformation:
+        stack_name: "{{ vpc_stack_name }}"
+        state: present
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        template: "vpc.cfn.yml"
+        tags:
+          Name: "{{ vpc_stack_name }}"
+        template_parameters:
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ default_aws_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: "{{ config.vpc_cidr }}"
+          PublicSubnetCidrAz1: "{{ config.public_subnet_az1_cidr }}"
+          PublicSubnetCidrAz2: "{{ config.public_subnet_az2_cidr }}"
+          PrivateSubnetCidrAz1: "{{ config.private_subnet_az1_cidr }}"
+          PrivateSubnetCidrAz2: "{{ config.private_subnet_az2_cidr }}"
+
+    - name: "Get facts on {{ vpc_stack_name }}"
+      check_mode: no
+      cloudformation_facts:
+        stack_name: "{{ vpc_stack_name }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        stack_resources: yes
+      failed_when: cloudformation[vpc_stack_name] is undefined
+
+    - name: "Set fact for {{ vpc_stack_name }}"
+      set_fact:
+        vpc_stack: "{{ cloudformation[vpc_stack_name] }}"
+
+# ======================================================================================================================
+# Frontend Bucket configuration
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ frontend_stack_name }}"
+      cloudformation:
+        stack_name: "{{ frontend_stack_name }}"
+        state: present
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        template: "frontend.cfn.yml"
+        tags:
+          Name: "{{ frontend_stack_name }}"
+        template_parameters:
+          FrontendBucketName: "{{ buckets_stack.stack_resources.FrontendBucket }}"
+          ReverseProxyS3VpcEndpointId: "{{ vpc_stack.stack_resources.S3VpcEndpoint }}"
+
+# ======================================================================================================================
+# reverseproxy
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ reverseproxy_stack_name }}"
+      cloudformation:
+        stack_name: "{{ reverseproxy_stack_name }}"
+        state: present
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        template: "reverseproxy.cfn.yml"
+        tags:
+          Name: "{{ reverseproxy_stack_name }}"
+        template_parameters:
+          AccountName: "{{ account_name }}"
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ default_aws_region_code }}"
+          Application: "{{ application }}"
+          VpcId: "{{ vpc_stack.stack_resources.Vpc }}"
+          AlbSubnets: "\
+            {{ vpc_stack.stack_resources.PublicSubnetAz1 }},\
+            {{ vpc_stack.stack_resources.PublicSubnetAz2 }}\
+            "
+          ReverseProxySubnets: "\
+            {{ vpc_stack.stack_resources.PrivateSubnetAz1 }},\
+            {{ vpc_stack.stack_resources.PrivateSubnetAz2 }}\
+            "
+          PublicHostedZoneId: "{{ config.public_hosted_zone_id }}"
+          AlbCertificateArn: "{{ config.reverseproxy_certificate_arn }}"
+          AppMinSize: "{{ config.reverseproxy_asg_min_size }}"
+          AppMaxSize: "{{ config.reverseproxy_asg_max_size }}"
+          AppDesiredCapacity: "{{ config.reverseproxy_asg_desired_capacity }}"
+          AssetsBucketName: "{{ buckets_stack.stack_resources.AssetsBucket }}"
+          FrontendBucketName: "{{ buckets_stack.stack_resources.FrontendBucket }}"
+          PublicDns: "{{ config.public_dns }}"
+          ReverseProxyDns: "{{ config.reverseproxy_dns }}"
+          KeyPairName: "{{ config.reverseproxy_key_pair }}"
+          ReverseProxyAmiId: "{{ config.reverseproxy_ami_id }}"
+          ReverseProxyInstanceType: "{{ config.reverseproxy_instance_type }}"
+          VpcDnsServerIp: "{{ vpc_stack.stack_parameters.VpcCidr[:-5] }}.2"
+          SecurityToken: "{{ config.security_token }}"
+
+# ======================================================================================================================
+# Cloudfront
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ cloudfront_stack_name }}"
+      cloudformation:
+        stack_name: "{{ cloudfront_stack_name }}"
+        state: present
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        template: "cloudfront.cfn.yml"
+        tags:
+          Name: "{{ cloudfront_stack_name }}"
+        template_parameters:
+          PublicDns: "{{ config.public_dns }}"
+          ReverseProxyDns: "{{ config.reverseproxy_dns }}"
+          CertificateArn: "{{ config.cloudfront_certificate_arn }}"
+          PublicHostedZoneId: "{{ config.public_hosted_zone_id }}"
+          SecurityToken: "{{ config.security_token }}"

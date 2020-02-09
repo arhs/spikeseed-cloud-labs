@@ -1,0 +1,87 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+
+    buckets_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-buckets"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# Setting facts for external Resources
+# ======================================================================================================================
+
+    - name: "Get facts on {{ buckets_stack_name }}"
+      check_mode: no
+      cloudformation_facts:
+        stack_name: "{{ buckets_stack_name }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        stack_resources: yes
+      failed_when: cloudformation[buckets_stack_name] is undefined
+
+    - name: "Set fact for {{ buckets_stack_name }}"
+      set_fact:
+        buckets_stack: "{{ cloudformation[buckets_stack_name] }}"
+
+# ======================================================================================================================
+# Lambdas
+# ======================================================================================================================
+
+    # -----------------
+    # Package
+    # -----------------
+
+    - name: "Package the lambda {{ item }}"
+      shell: "./package-lambda.sh {{ item }}"
+      with_items:
+        - cloudfront-sg-updater
+
+    #-----------------
+    # Push to S3
+    #-----------------
+    - name: "Push the lambda {{ item }} to S3 in {{ default_aws_region }}"
+      s3_sync:
+        bucket: "{{ buckets_stack.stack_resources.AssetsBucket }}"
+        file_root: "{{ item }}/.dist"
+        key_prefix: "lambdas/{{ item }}"
+        include: '*.zip'
+        mode: push
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+      with_items:
+        - cloudfront-sg-updater
+
+    # -----------------
+    # Deploy lambdas in default AWS region
+    # -----------------
+
+    # cloudfront-sg-updater
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region }}"
+        profile: "{{ local_account }}"
+        template: "{{ local_lambda_name }}/{{ local_lambda_name }}.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountCode: "{{ local_account_code }}"
+          RegionCode: "{{ local_region }}"
+          Application: "{{ application }}"
+          BucketName: "{{ buckets_stack.stack_resources.AssetsBucket }}"
+          S3Key: "lambdas/{{ local_lambda_name }}/{{ lookup('file', local_lambda_name + '/.dist/meta') }}"
+      vars:
+        local_lambda_name: cloudfront-sg-updater
+        local_region: "{{ default_aws_region }}"
+        local_account: "{{ account_name }}"
+        local_account_code: "{{ account_code }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ local_account_code }}-{{ local_region_code }}-{{ application }}-lambda-cloudfrontsgupdater"
+        local_aws_tags:
+          Name: "{{ local_stack_name }}"

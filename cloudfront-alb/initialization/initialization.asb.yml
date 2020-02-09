@@ -1,0 +1,60 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+
+    buckets_stack_name: "{{ account_code }}-{{ default_aws_region_code }}-{{ application }}-buckets"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+    #-----------------
+    # Creating required buckets
+    #-----------------
+
+    - name: "Deploy CloudFormation stack {{ buckets_stack_name }}"
+      cloudformation:
+        stack_name: "{{ buckets_stack_name }}"
+        state: present
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        template: "buckets.cfn.yml"
+        tags:
+          Name: "{{ buckets_stack_name }}"
+        template_parameters:
+          AssetsBucketName: "{{ config.assets_bucket_name }}"
+          FrontendBucketName: "{{ config.frontend_bucket_name }}"
+
+    - name: "Get facts on {{ buckets_stack_name }}"
+      check_mode: no
+      cloudformation_facts:
+        stack_name: "{{ buckets_stack_name }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+        stack_resources: yes
+      failed_when: cloudformation[buckets_stack_name] is undefined
+
+    - name: "Set fact for {{ buckets_stack_name }}"
+      set_fact:
+        buckets_stack: "{{ cloudformation[buckets_stack_name] }}"
+
+    #-----------------
+    # Pushing assets to S3
+    #-----------------
+    - name: "Push assets to S3"
+      s3_sync:
+        bucket: "{{ buckets_stack.stack_resources.AssetsBucket }}"
+        file_root: "assets/"
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"
+
+    - name: "Push frontend resources to S3"
+      s3_sync:
+        bucket: "{{ buckets_stack.stack_resources.FrontendBucket }}"
+        file_root: "frontend/"
+        region: "{{ default_aws_region }}"
+        profile: "{{ account_name }}"

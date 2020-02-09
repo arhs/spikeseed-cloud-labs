@@ -1,0 +1,27 @@
+Parameters:
+
+  FrontendBucketName:
+    Description: Name of the bucket containing GovSec Frontend resources
+    Type: String
+  ReverseProxyS3VpcEndpointId:
+    Type: String
+
+Resources:
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucketName
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - s3:GetObject
+            Resource:
+              - !Sub arn:aws:s3:::${FrontendBucketName}/*
+            Condition:
+              StringLike:
+                'aws:sourceVpce':
+                  - !Ref ReverseProxyS3VpcEndpointId

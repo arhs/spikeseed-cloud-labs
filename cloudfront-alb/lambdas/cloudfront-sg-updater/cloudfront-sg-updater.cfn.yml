@@ -1,0 +1,83 @@
+Parameters:
+
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  BucketName:
+    Description: The S3 bucket where the lambda package is located
+    Type: String
+  S3Key:
+    Description: The S3 key where the lambda package is located
+    Type: String
+
+Resources:
+
+  CloudfrontSgUpdaterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lambda-cloudfrontsgupdater-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Effect: Allow
+      Policies:
+        - PolicyName: lambda-cloudfrontsgupdater-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action: ec2:DescribeSecurityGroups
+                Effect: Allow
+                Resource: '*'
+              - Action:
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                Effect: Allow
+                Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*:*
+
+  CloudfrontSgUpdaterLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: cloudfront-sg-updater
+      Description: Update Security Groups ingress rules with the CloudFront IP ranges
+      Runtime: python3.7
+      MemorySize: 128
+      Timeout: 300
+      Handler: index.handler
+      Role: !GetAtt CloudfrontSgUpdaterRole.Arn
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Ref S3Key
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-cloudfrontsgupdater
+
+  AmazonIpSpaceChangedSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CloudfrontSgUpdaterLambda.Arn
+      Protocol: lambda
+      TopicArn: arn:aws:sns:us-east-1:806199016981:AmazonIpSpaceChanged
+      Region: us-east-1
+
+  LambdaSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt CloudfrontSgUpdaterLambda.Arn
+      Principal: events.amazonaws.com
+      SourceArn: arn:aws:sns:us-east-1:806199016981:AmazonIpSpaceChanged
