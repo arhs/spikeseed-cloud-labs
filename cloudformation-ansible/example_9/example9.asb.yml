@@ -1,0 +1,27 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    a_list: ['dev', 'sandbox']
+
+  tasks:
+
+    - debug:
+        msg: "Case 1"
+      when: var_1 is defined and var_1 == 'active'
+
+    - debug:
+        msg: "Case 2"
+      when: >-
+        var_1 is defined and var_2 is defined
+        and var_1 == 'active' and var_2 == 'active'
+
+    - debug:
+        msg: "Case 3"
+      when: var_2 is not defined or var_3 is defined
+
+    - debug:
+        msg: "Case 4"
+      when: var_4 is defined and var_4 in a_list

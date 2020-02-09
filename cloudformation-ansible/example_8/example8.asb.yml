@@ -1,0 +1,20 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    var_1: var 1 - playbook
+    var_2: var 2 - playbook
+    var_3: var 3 - playbook
+
+  vars_files:
+    - vars/common-vars.asb.yml
+
+  tasks:
+
+    - debug:
+        msg: "{{ var_1 }} | {{ var_2 }} | {{ var_3 }}"
+      vars:
+        var_1: var 1 - task
+        var_3: var 3 - task

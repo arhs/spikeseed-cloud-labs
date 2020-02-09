@@ -1,0 +1,30 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    vpc_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-vpc"
+
+  vars_files:
+    - vars/common-vars.asb.yml
+
+  tasks:
+
+    - name: "Deploy CloudFormation stack {{ vpc_stack_name }}"
+      cloudformation:
+        stack_name: "{{ vpc_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: vpc.cfn.yml
+        tags:
+          Name: "{{ vpc_stack_name }}"
+          Application: "{{ application }}"
+        template_parameters:
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: 10.68.2.0/23
+          PublicSubnetCidrAz1: 10.68.2.0/26
+          PublicSubnetCidrAz2: 10.68.2.64/26

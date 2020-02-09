@@ -1,0 +1,33 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    account_name: spikeseed-labs
+    account_code: l
+    aws_region: eu-west-1
+    aws_region_code: ew1
+    application: demo
+
+  tasks:
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: vpc.cfn.yml
+        tags:
+          Name: "{{ local_stack_name }}"
+          Application: "{{ application }}"
+        template_parameters:
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: 10.68.2.0/23
+          PublicSubnetCidrAz1: 10.68.2.0/26
+          PublicSubnetCidrAz2: 10.68.2.64/26
+      vars:
+        local_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-vpc"

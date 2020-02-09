@@ -1,0 +1,26 @@
+Parameters:
+
+  AccountCode:
+    Description: Code of the AWS Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Application
+    Type: String
+  SsmVpcIdKey:
+    Description: SSM Key storing the value of the VPC ID
+    Type : AWS::SSM::Parameter::Value<String>
+
+Resources:
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-sg
+      GroupDescription: !Sub ${AccountCode}-${RegionCode}-${Application}-sg
+      VpcId: !Ref SsmVpcIdKey # resolved
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-sg

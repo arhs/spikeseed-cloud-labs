@@ -1,0 +1,82 @@
+Parameters:
+
+  AccountCode:
+    Description: Code of the AWS Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Application
+    Type: String
+  VpcCidr:
+    Description: VPC CIDR
+    Type: String
+  PublicSubnetCidrAz1:
+    Description: Public Subnet CIDR AZ A
+    Type: String
+  PublicSubnetCidrAz2:
+    Description: Public Subnet CIDR AZ B
+    Type: String
+  SsmVpcIdKey:
+    Type: String
+  SsmPublicSubnetIdsKey:
+    Type: String
+
+#=======================================================================================================================
+# Resources
+#=======================================================================================================================
+
+Resources:
+
+  #================
+  # VPC
+  #================
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-vpc
+
+  #================
+  # Subnets
+  #================
+
+  PublicSubnetAz1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnetCidrAz1
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-public-1a
+
+  PublicSubnetAz2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnetCidrAz2
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-public-1b
+
+  SsmVpcId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Ref SsmVpcIdKey
+      Type: String
+      Value: !Ref Vpc
+
+  SsmPublicSubnetIds:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Ref SsmPublicSubnetIdsKey
+      Type: String
+      Value: !Join [ ',', [ !Ref PublicSubnetAz1, !Ref PublicSubnetAz2 ] ]

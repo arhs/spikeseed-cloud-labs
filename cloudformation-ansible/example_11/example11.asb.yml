@@ -1,0 +1,79 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    vpc_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-vpc"
+
+  vars_files:
+    - vars/common-vars.asb.yml
+
+  tasks:
+
+    - name: "Deploy CloudFormation stack {{ vpc_stack_name }}"
+      cloudformation:
+        stack_name: "{{ vpc_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: vpc.cfn.yml
+        tags:
+          Name: "{{ vpc_stack_name }}"
+          Application: "{{ application }}"
+        template_parameters:
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: "{{ config[account_name].vpc_cidr }}"
+          PublicSubnetCidrAz1: "{{ config[account_name].public_subnet_az1_cidr }}"
+          PublicSubnetCidrAz2: "{{ config[account_name].public_subnet_az2_cidr }}"
+
+    # Ansible < 2.13
+    - name: "Get facts on {{ vpc_stack_name }}"
+      check_mode: no
+      cloudformation_facts:
+        stack_name: "{{ vpc_stack_name }}"
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        stack_resources: yes
+      failed_when: cloudformation[vpc_stack_name] is undefined
+
+    - name: "Set fact for {{ vpc_stack_name }}"
+      set_fact:
+        vpc_stack: "{{ cloudformation[vpc_stack_name] }}"
+
+    # Ansible >= 2.9
+    # - name: "Get facts on {{ vpc_stack_name }}"
+    #   check_mode: no
+    #   cloudformation_info:
+    #     stack_name: "{{ vpc_stack_name }}"
+    #     region: "{{ aws_region }}"
+    #     profile: "{{ account_name }}"
+    #     stack_resources : yes
+    #   failed_when: output.cloudformation[vpc_stack_name] is undefined
+    #   register: output
+
+    # - name: "Set fact for {{ vpc_stack_name }}"
+    #   set_fact:
+    #     vpc_stack: "{{ output.cloudformation[vpc_stack_name] }}"
+
+    # Printing vpc_stack object
+
+    - debug:
+        msg: "Stack: {{ vpc_stack }}"
+
+    - debug:
+        msg: "Stack Resources: {{ vpc_stack.stack_resources }}"
+
+    - debug:
+        msg: "Stack Outputs: {{ vpc_stack.stack_outputs }}"
+
+    - debug:
+        msg: "VPC ID: {{ vpc_stack.stack_resources.Vpc }}"
+
+    - debug:
+        msg: "PublicSubnets: {{ vpc_stack.stack_resources.PublicSubnetAz1 }}, {{ vpc_stack.stack_resources.PublicSubnetAz2 }}"
+
+    - debug:
+        msg: "DefaultSecurityGroupId: {{ vpc_stack.stack_outputs.DefaultSecurityGroupId }}"

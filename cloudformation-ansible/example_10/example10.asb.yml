@@ -1,0 +1,49 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    a_list: ['dev', 'sandbox']
+
+  tasks:
+
+    - name: List of strings - JSON like array
+      debug:
+        msg: "{{ item }}"
+      loop: [ 0, 2, 4 ]
+
+    - name:  List of strings - YAML array
+      debug:
+        msg: "{{ item }}"
+      loop:
+        - a
+        - b
+        - c
+
+    - name: List of objects
+      debug:
+        msg: "{{ item.acc }} | {{ item.acc }}"
+      loop:
+        - acc: spikeseed-sandbox
+          env: sandbox
+        - acc: spikeseed-prod
+          env: production
+
+    - name: Nested loops
+      debug:
+        msg: "{{ item[0] }} | {{ item[1] }}"
+      with_nested:
+        - [ x, y, z]
+        - [ 7, 8, 9]
+
+    - name: Looping over a dictionary
+      debug:
+        msg: "{{ item.key }} | {{ item.value.code }}"
+      loop: "{{ aws_regions|dict2items }}"
+      vars:
+        aws_regions:
+          'ca-central-1':
+            code: cc1
+          'eu-central-1':
+            code: ec1

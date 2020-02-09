@@ -1,0 +1,45 @@
+---
+aws_regions:
+  'ca-central-1':
+    code: cc1
+  'eu-central-1':
+    code: ec1
+  'eu-west-1':
+    code: ew1
+  'eu-west-2':
+    code: ew2
+  'eu-west-3':
+    code: ew3
+  'eu-north-1':
+    code: en1
+  'us-east-1':
+    code: ue1
+  'us-east-2':
+    code: ue2
+  'us-west-1':
+    code: uw1
+  'us-west-2':
+    code: uw2
+  'sa-east-1':
+    code: se1
+
+aws_accounts:
+  'spikeseed-labs':
+    code: l
+    environment: sandbox
+
+account_name: spikeseed-labs
+account_code: "{{ aws_accounts[account_name].code }}"
+aws_region: eu-west-1
+aws_region_code: "{{ aws_regions[aws_region].code }}"
+application: demo
+
+ssm_vpc_id_key: /cfn/vpc/id
+ssm_public_subnets_id_key: /cfn/publicSubnets/ids
+
+config:
+  'spikeseed-labs':
+    vpc_cidr: 10.68.2.0/23
+    public_subnet_cidr: 10.68.2.0/24
+    public_subnet_az1_cidr: 10.68.2.0/26
+    public_subnet_az2_cidr: 10.68.2.64/26

@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    vpc_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-vpc"
+    sgs_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-sgs"
+
+  vars_files:
+    - vars/common-vars.asb.yml
+
+  tasks:
+
+    - name: "Deploy CloudFormation stack {{ vpc_stack_name }}"
+      cloudformation:
+        stack_name: "{{ vpc_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: vpc.cfn.yml
+        tags:
+          Name: "{{ vpc_stack_name }}"
+          Application: "{{ application }}"
+        template_parameters:
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: "{{ config[account_name].vpc_cidr }}"
+          PublicSubnetCidrAz1: "{{ config[account_name].public_subnet_az1_cidr }}"
+          PublicSubnetCidrAz2: "{{ config[account_name].public_subnet_az2_cidr }}"
+          SsmVpcIdKey: "{{ ssm_vpc_id_key }}"
+          SsmPublicSubnetIdsKey: "{{ ssm_public_subnets_id_key }}"
+
+    - name: Get values from SSM
+      set_fact:
+        ssm_vpc_id: "{{ lookup( 'aws_ssm', ssm_vpc_id_key, region=aws_region, aws_profile=account_name ) }}"
+        ssm_public_subnets_id: "{{ lookup( 'aws_ssm', ssm_public_subnets_id_key, region=aws_region, aws_profile=account_name ) }}"
+        ssm_non_existent: "{{ lookup( 'aws_ssm', '/non/existent', region=aws_region, aws_profile=account_name ) }}"
+
+    - debug:
+        msg: >-
+          ssm_vpc_id: {{ ssm_vpc_id }}
+          | ssm_public_subnets_id: {{ ssm_public_subnets_id }}
+          | ssm_non_existent: <{{ ssm_non_existent }}>
+
+    - name: "Deploy CloudFormation stack {{ sgs_stack_name }}"
+      cloudformation:
+        stack_name: "{{ sgs_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: securitygroups.cfn.yml
+        tags:
+          Name: "{{ sgs_stack_name }}"
+          Application: "{{ application }}"
+        template_parameters:
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          SsmVpcIdKey: "{{ ssm_vpc_id_key }}"
