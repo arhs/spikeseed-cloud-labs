@@ -1,0 +1,225 @@
+Parameters:
+
+  AccountName:
+    Description: Name of the Account
+    Type: String
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  SsmVpcIdKey:
+    Description: VPC ID
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmPrivateSubnetsKey:
+    Description: Subnets to deploy the Container
+    Type: AWS::SSM::Parameter::Value<List<String>>
+  CicdArtifactsBucketName:
+    Description: Name of the bucket to store CodePipeline and CodeBuild artifacts
+    Type: String
+  CodeCommitRepositoryName:
+    Description: Name of the CodeCommit repository containing the provisioning assets
+    Type: String
+  ServiceName:
+    Description: Name of the service the AMI is for
+    Type: String
+
+Resources:
+
+  #================
+  # Repository
+  #================
+
+  CodeRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+        RepositoryName: !Ref CodeCommitRepositoryName
+
+  #================
+  # Bucket
+  #================
+
+  CicdArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref CicdArtifactsBucketName
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+      Tags:
+        - Key: Name
+          Value: !Ref CicdArtifactsBucketName
+
+  #================
+  # Security Groups
+  #================
+
+  ContainerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-packer-container
+      GroupDescription: Allow access to the container
+      VpcId: !Ref SsmVpcIdKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-packer-container
+
+  InstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-packer
+      GroupDescription: Allow access to the instance
+      VpcId: !Ref SsmVpcIdKey
+      SecurityGroupIngress:
+        - Description: Allow SSH access
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref ContainerSG
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-packer
+
+  #================
+  # CodeBuild
+  #================
+
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub codebuild-${ServiceName}-role
+      Path: /managed/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/PowerUserAccess
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServiceName}
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Sub /${AccountName}/aws/codebuild/${ServiceName}
+          StreamName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServiceName}
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+      VpcConfig:
+        VpcId: !Ref SsmVpcIdKey
+        Subnets: !Ref SsmPrivateSubnetsKey
+        SecurityGroupIds:
+          - !Ref ContainerSG
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:1.0
+        EnvironmentVariables:
+          - Name: BUILD_VPC_ID
+            Value: !Ref SsmVpcIdKey
+          - Name: BUILD_SUBNET_ID
+            Value: !Select [0, !Ref SsmPrivateSubnetsKey ]
+          - Name: BUILD_INSTANCE_SG_ID
+            Value: !Ref InstanceSG
+
+  #================
+  # CodePipeline
+  #================
+
+  PipelineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub codepipeline-${ServiceName}-role
+      Path: /managed/
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+      Policies:
+        - PolicyName: !Sub codepipeline-${ServiceName}-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                  - s3:PutObject
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:s3:::${CicdArtifactsBucketName}
+                  - !Sub arn:aws:s3:::${CicdArtifactsBucketName}/*
+              - Action:
+                  - codecommit:GetBranch
+                  - codecommit:GetCommit
+                  - codecommit:UploadArchive
+                  - codecommit:GetUploadArchiveStatus
+                  - codecommit:CancelUploadArchive
+                Effect: Allow
+                Resource: !GetAtt CodeRepository.Arn
+              - Action:
+                  - codebuild:StartBuild
+                  - codebuild:StopBuild
+                  - codebuild:BatchGetBuilds
+                Effect: Allow
+                Resource: !GetAtt CodeBuildProject.Arn
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref CicdArtifactsBucketName
+        Type: S3
+      Name: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServiceName}
+      RoleArn: !GetAtt PipelineExecutionRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: CodeCommitRepo
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              Configuration:
+                RepositoryName: !Ref CodeCommitRepositoryName
+                BranchName: master
+              OutputArtifacts:
+                - Name: SourceZip
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: CodeBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts:
+                - Name: SourceZip
+              OutputArtifacts:
+                - Name: BuiltZip

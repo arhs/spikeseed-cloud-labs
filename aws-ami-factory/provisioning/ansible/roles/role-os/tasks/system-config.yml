@@ -1,0 +1,11 @@
+---
+
+- name: Fixing cloud-init logging output
+  lineinfile:
+    path: /etc/cloud/cloud.cfg.d/05_logging.cfg
+    line: >-
+      output: {all: '| tee -a /var/log/cloud-init-output.log'}
+
+- name: Setting the Timezone
+  timezone:
+    name: Europe/Luxembourg

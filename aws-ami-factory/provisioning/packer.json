@@ -1,0 +1,62 @@
+{
+  "variables": {
+    "aws_region": "eu-west-1",
+    "ssh_username": "centos",
+    "ami_id": "ami-0ff760d16d9497662",
+    "distribution": "centos7",
+    "vpc_id": "{{ env `BUILD_VPC_ID` }}",
+    "subnet_id": "{{ env `BUILD_SUBNET_ID` }}",
+    "instance_sg_id": "{{ env `BUILD_INSTANCE_SG_ID` }}",
+    "packer_id": "{{ uuid }}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{ user `aws_region` }}",
+      "vpc_id": "{{user `vpc_id`}}",
+      "subnet_id": "{{ user `subnet_id` }}",
+      "security_group_id": "{{ user `instance_sg_id` }}",
+      "instance_type": "t3.nano",
+      "ssh_username": "{{ user `ssh_username` }}",
+      "ssh_timeout": "5m",
+      "run_tags": {
+        "Name": "packer-ec2-instance",
+        "PackerId": "{{ user `packer_id` }}",
+        "Distribution": "{{ user `distribution` }}"
+      },
+      "run_volume_tags": {
+        "Name": "packer-volume",
+        "PackerId": "{{ user `packer_id` }}"
+      },
+      "tags": {
+        "Name": "digit-baseline-{{ user `distribution` }}",
+        "PackerId": "{{ user `packer_id` }}"
+      },
+      "source_ami": "{{ user `ami_id` }}",
+      "ami_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "delete_on_termination": true,
+          "volume_size": 8,
+          "volume_type": "gp2"
+        }
+      ],
+      "ami_name": "demo-baseline-{{ user `distribution` }}-{{ timestamp }}",
+      "ami_virtualization_type": "hvm"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "user": "{{ user `ssh_username` }}",
+      "playbook_file": "ansible/playbook.yml"
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "manifest.json",
+      "strip_path": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+---
+- name: Make sure that cloudwatch is stopped
+  service:
+    name: amazon-cloudwatch-agent
+    state: stopped
+
+- name: Copy amazon-cloudwatch-agent.json
+  template:
+    dest: /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+    src: amazon-cloudwatch-agent.json
+    force: yes
+
+- name: Make sure that cloudwatch is started
+  service:
+    name: amazon-cloudwatch-agent
+    enabled: yes
+    state: started

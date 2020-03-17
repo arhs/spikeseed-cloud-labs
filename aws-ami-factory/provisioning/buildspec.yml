@@ -1,0 +1,40 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.7
+    commands:
+      - echo "Installing tools to create an AMI - $(date)"
+      - ls .
+      - echo "Installing ansible"
+      - pip install ansible==2.9.6
+      - echo "Installing Packer"
+      - curl -o packer.zip https://releases.hashicorp.com/packer/1.5.4/packer_1.5.4_linux_amd64.zip
+      - unzip packer.zip
+  pre_build:
+    commands:
+      - echo "Starting building AMI - $(date)"
+      - echo "Validating Packer template"
+      - ./packer version
+      - ./packer validate packer.json
+  build:
+    commands:
+      - echo "Build"
+      - ./packer build -color=false packer.json | tee build.log
+  post_build:
+    commands:
+      # If there is an error in the build step, the post_build is still executed
+      - test -f manifest.json || exit 1
+      - cat manifest.json
+      - AMI_ID=$(cut -d':' -f2 <<<"$(jq -r '.builds[0].artifact_id' < manifest.json)")
+      # The file exist but there is no AMI ID
+      - test "$AMI_ID" != "" && test "$AMI_ID" != "null" || exit 1
+      - >-
+        aws ssm put-parameter --cli-input-json
+        '{"Type": "String", "Name": "/app/ami/id", "Value": "'"$AMI_ID"'", "Overwrite": true}'
+      - echo "AMI ID $AMI_ID"
+      - echo "Build completed on $(date)"
+artifacts:
+  files:
+    - build.log
+  discard-paths: yes

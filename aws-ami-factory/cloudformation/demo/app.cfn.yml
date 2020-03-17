@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  AccountName:
+    Description: Name of the Account
+    Type: String
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  SsmVpcIdKey:
+    Description: SSM Key storing the value of the VPC ID
+    Type : AWS::SSM::Parameter::Value<String>
+  SsmPublicSubnetsKey:
+    Description: Subnets
+    Type: AWS::SSM::Parameter::Value<List<String>>
+  SsmAppAmiIdKey:
+    Description: App AMI ID
+    Type: AWS::SSM::Parameter::Value<String>
+  KeyPairName:
+    Description: App Key Pair Name
+    Type: String
+  AppInstanceType:
+    Description: The EC2 instance type for App instance
+    Type: String
+
+#=======================================================================================================================
+# Resources
+#=======================================================================================================================
+
+Resources:
+
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: demo-app-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      Policies:
+        - PolicyName: backend-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AccountName}/${Application}/*
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: demo-app-instance-profile
+      Path: /
+      Roles:
+        - !Ref AppRole
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-app
+      GroupDescription: Allow access to the App
+      VpcId: !Ref SsmVpcIdKey
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app
+
+  AppLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        KeyName: !Ref KeyPairName
+        ImageId: !Ref SsmAppAmiIdKey
+        IamInstanceProfile:
+          Arn: !GetAtt AppInstanceProfile.Arn
+        InstanceType: !Ref AppInstanceType
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups:
+              - !Ref AppSecurityGroup
+        TagSpecifications:
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app
+              - Key: Application
+                Value: !Sub ${Application}
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AppLaunchTemplate
+        Version: !GetAtt AppLaunchTemplate.LatestVersionNumber
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Select [0, !Ref SsmPublicSubnetsKey ]
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !Ref AppSecurityGroup

@@ -1,0 +1,9 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - role-os
+    - role-nginx

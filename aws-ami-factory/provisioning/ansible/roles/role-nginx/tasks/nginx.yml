@@ -1,0 +1,37 @@
+---
+- name: Enable nginx repo
+  template:
+    src: nginx.repo
+    dest: /etc/yum.repos.d/nginx.repo
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install Nginx OSS
+  yum:
+    name: "nginx-{{ nginx_version }}"
+    state: present
+
+- name: Make sure that nginx is stopped
+  service:
+    name: nginx
+    state: stopped
+
+- name: Stat /etc/nginx/conf.d/default.conf
+  stat: path=/etc/nginx/conf.d/default.conf
+  register: default_conf_stat
+
+- name: Disable default.conf
+  command: mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.old
+  when: default_conf_stat.stat.exists
+
+- name: Copy nginx.conf
+  template:
+    dest: "/etc/nginx/nginx.conf"
+    src: conf/nginx.conf
+
+- name: Start nginx
+  service:
+    name: nginx
+    state: started
+    enabled: yes

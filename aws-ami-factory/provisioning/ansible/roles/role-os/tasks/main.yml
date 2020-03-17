@@ -1,0 +1,3 @@
+---
+- import_tasks: system-config.yml
+- import_tasks: aws-agents.yml

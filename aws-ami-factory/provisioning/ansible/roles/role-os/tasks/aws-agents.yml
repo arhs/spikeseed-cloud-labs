@@ -1,0 +1,22 @@
+---
+
+- name: Install Cloudwatch Agent
+  yum:
+    name: https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+    state: present
+
+- name: Make sure that Cloudwatch is stopped
+  service:
+    name: amazon-cloudwatch-agent
+    state: stopped
+
+- name: Installing SSM Agent
+  yum:
+    name: https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+    state: present
+
+- name: Make sure that SSM service is enabled
+  service:
+    name: amazon-ssm-agent
+    state: stopped
+    enabled: yes
