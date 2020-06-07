@@ -6,6 +6,7 @@
 - An IAM user with [programmatic access](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)
 - The AWS CLI with a [profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) configured
 - [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) (on Windows you will need [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10))
+- Subscribe to the [CentOS 7 AMI](https://aws.amazon.com/marketplace/pp/B00O7WM7QW)
 
 ## Configuration
 
