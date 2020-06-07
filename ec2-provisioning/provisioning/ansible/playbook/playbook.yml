@@ -1,0 +1,39 @@
+---
+- hosts: localhost
+
+  tasks:
+
+    - name: Installing SSM Agent
+      yum:
+        name: https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+        state: present
+
+    - name: Make sure that SSM service is enabled
+      service:
+        name: amazon-ssm-agent
+        state: started
+        enabled: yes
+
+    - name: Enable nginx repo
+      copy:
+        dest: /etc/yum.repos.d/nginx.repo
+        owner: root
+        group: root
+        mode: 0644
+        content: |-
+          [nginx]
+          name=nginx repo
+          baseurl=http://nginx.org/packages/mainline/centos/7/$basearch/
+          gpgcheck=0
+          enabled=1
+
+    - name: Install Nginx OSS
+      yum:
+        name: nginx-1.19.0
+        state: present
+
+    - name: Start nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
