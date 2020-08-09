@@ -1,0 +1,8 @@
+---
+- name: Copy nginx.conf
+  template:
+    dest: /etc/nginx/nginx.conf
+    src: nginx.conf
+
+- name: Reload Nginx configuration
+  command: nginx -s reload

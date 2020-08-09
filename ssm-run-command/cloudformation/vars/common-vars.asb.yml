@@ -1,0 +1,50 @@
+---
+aws_regions:
+  'ca-central-1':
+    code: cc1
+  'eu-central-1':
+    code: ec1
+  'eu-west-1':
+    code: ew1
+  'eu-west-2':
+    code: ew2
+  'eu-west-3':
+    code: ew3
+  'eu-north-1':
+    code: en1
+  'us-east-1':
+    code: ue1
+  'us-east-2':
+    code: ue2
+  'us-west-1':
+    code: uw1
+  'us-west-2':
+    code: uw2
+  'sa-east-1':
+    code: se1
+
+account_name: spikeseed-labs
+account_code: s
+account_id: '820263751386'
+aws_environment: sandbox
+aws_region: eu-west-1
+aws_region_code: "{{ aws_regions[aws_region].code }}"
+application: demo
+
+# Codecommit
+ansible_repository: demo-ansible
+
+# VPC
+ssm_cicd_vpc_id_key: /cfn/cicd/vpc/id
+ssm_cicd_public_subnets_id_key: /cfn/cicd/publicSubnets/ids
+ssm_cicd_private_subnets_id_key: /cfn/cicd/privateSubnets/ids
+ssm_app_vpc_id_key: /cfn/app/vpc/id
+ssm_app_public_subnets_id_key: /cfn/app/publicSubnets/ids
+
+app_vpc_cidr: 10.68.100.0/26
+app_public_subnet_cidr: 10.68.100.0/26
+app_public_subnet_az1_cidr: 10.68.100.0/27
+app_public_subnet_az2_cidr: 10.68.100.32/27
+app_keypair_name: labs-test
+app_ami_id: ami-0b850cf02cc00fdc8
+app_instance_type: t3.nano

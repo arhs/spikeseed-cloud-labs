@@ -1,0 +1,42 @@
+Parameters:
+
+  AwsPrincipals:
+    Type: CommaDelimitedList
+  RepositoriesRegion:
+    Type: String
+
+Resources:
+
+  GitAnsibleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: git-ansible-assumable-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref AwsPrincipals
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: git-ansible-assumable-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codecommit:GitPull
+                Resource: !Sub arn:aws:codecommit:${RepositoriesRegion}:${AWS::AccountId}:demo-ansible*
+
+  GitAnsiblePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: git-ansible-policy
+      Description: Allows the bearer to assume the git-ansible-assumable-role role
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !GetAtt GitAnsibleRole.Arn

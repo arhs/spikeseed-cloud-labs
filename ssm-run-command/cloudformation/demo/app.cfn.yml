@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  AccountName:
+    Description: Name of the Account
+    Type: String
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  SsmVpcIdKey:
+    Description: SSM Key storing the value of the VPC ID
+    Type : AWS::SSM::Parameter::Value<String>
+  SsmPublicSubnetsKey:
+    Description: Subnets
+    Type: AWS::SSM::Parameter::Value<List<String>>
+  AppAmiId:
+    Description: App AMI ID
+    Type: String
+  KeyPairName:
+    Description: App Key Pair Name
+    Type: String
+  AppInstanceType:
+    Description: The EC2 instance type for App instance
+    Type: String
+  GitAnsiblePolicyArn:
+    Type: String
+  GitAnsibleRoleArn:
+    Type: String
+  RepositoriesRegion:
+    Type: String
+
+#=======================================================================================================================
+# Resources
+#=======================================================================================================================
+
+Resources:
+
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ec2-demo-app-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref GitAnsiblePolicyArn
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+
+  AppInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: demo-app-instance-profile
+      Path: /
+      Roles:
+        - !Ref AppRole
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-app
+      GroupDescription: Allow access to the App
+      VpcId: !Ref SsmVpcIdKey
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app
+
+  AppLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        KeyName: !Ref KeyPairName
+        ImageId: !Ref AppAmiId
+        IamInstanceProfile:
+          Arn: !GetAtt AppInstanceProfile.Arn
+        InstanceType: !Ref AppInstanceType
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups:
+              - !Ref AppSecurityGroup
+        TagSpecifications:
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app
+              - Key: Application
+                Value: !Sub ${Application}
+        UserData:
+          Fn::Base64:
+            Fn::Sub: |
+              #cloud-config
+              output : { all : '| tee -a /var/log/cloud-init-output.log' }
+              repo_update: true
+              repo_upgrade: all
+              runcmd:
+                - [ sh, -c, "echo 'Deploying Demo Application'" ]
+
+                - [ sh, -c, "echo 'Updating OS'" ]
+                - yum update -y
+                - yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+                - yum update -y
+                - yum install -y git ansible unzip
+
+                - [ sh, -c, "echo 'Installing AWS CLI v2'" ]
+                - cd /tmp
+                - curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+                - unzip awscliv2.zip
+                - ./aws/install
+
+                - [ sh, -c, "echo 'Installing pip'" ]
+                - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+                - python get-pip.py
+                - rm -f get-pip.py
+
+                - [ sh, -c, "echo 'Installing Boto3 for ansible'" ]
+                - pip install boto3 --upgrade
+
+                - [ sh, -c, "echo 'Installing git-remote-codecommit'" ]
+                - pip install git-remote-codecommit
+
+                - [ sh, -c, "echo 'Configuring profile git-ansible'" ]
+                - aws configure set profile.git-ansible.region ${AWS::Region}
+                - aws configure set profile.git-ansible.credential_source Ec2InstanceMetadata
+                - aws configure set profile.git-ansible.role_arn ${GitAnsibleRoleArn}
+
+                - [ sh, -c, "echo 'Installing SSM Agent'" ]
+                - yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+                - systemctl enable amazon-ssm-agent
+                - systemctl start amazon-ssm-agent
+
+                - [ sh, -c, "echo 'Installing Nginx'" ]
+                - |-
+                  cat <<EOT >> /etc/yum.repos.d/nginx.repo
+                  [nginx]
+                  name=nginx repo
+                  baseurl=http://nginx.org/packages/mainline/centos/7/\$basearch/
+                  gpgcheck=0
+                  enabled=1
+                  EOT
+                - chmod 0644 /etc/yum.repos.d/nginx.repo
+                - yum install -y nginx-1.19.0
+                - systemctl enable nginx
+                - systemctl start nginx
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AppLaunchTemplate
+        Version: !GetAtt AppLaunchTemplate.LatestVersionNumber
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Select [0, !Ref SsmPublicSubnetsKey ]
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !Ref AppSecurityGroup

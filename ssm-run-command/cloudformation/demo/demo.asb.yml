@@ -1,0 +1,128 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# Permissions
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: "permissions.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AwsPrincipals: "arn:aws:iam::{{ account_id }}:root"
+          RepositoriesRegion: "{{ aws_region }}"
+      vars:
+        local_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-permissions"
+        local_aws_tags:
+          Environment: "{{ aws_environment }}"
+          Name: "{{ local_stack_name }}"
+
+# ======================================================================================================================
+# Buckets
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: "buckets.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          LogsBucketName: "{{ account_code }}-{{ aws_region_code }}-demo"
+      vars:
+        local_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-buckets"
+        local_aws_tags:
+          Environment: "{{ aws_environment }}"
+          Name: "{{ local_stack_name }}"
+
+# ======================================================================================================================
+# SSM Documents
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: "ssm-documents.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+      vars:
+        local_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-ssm-documents"
+        local_aws_tags:
+          Environment: "{{ aws_environment }}"
+          Name: "{{ local_stack_name }}"
+
+# ======================================================================================================================
+# VPC
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: vpc.cfn.yml
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountName: "{{ account_name }}"
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: "{{ app_vpc_cidr }}"
+          PublicSubnetCidrAz1: "{{ app_public_subnet_az1_cidr }}"
+          PublicSubnetCidrAz2: "{{ app_public_subnet_az2_cidr }}"
+          SsmVpcIdKey: "{{ ssm_app_vpc_id_key }}"
+          SsmPublicSubnetsKey: "{{ ssm_app_public_subnets_id_key }}"
+      vars:
+        local_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-vpc"
+        local_aws_tags:
+          Environment: "{{ aws_environment }}"
+          Name: "{{ local_stack_name }}"
+
+# ======================================================================================================================
+# Application
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ account_name }}"
+        template: app.cfn.yml
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountName: "{{ account_name }}"
+          AccountCode: "{{ account_code }}"
+          RegionCode: "{{ aws_region_code }}"
+          Application: "{{ application }}"
+          SsmVpcIdKey: "{{ ssm_app_vpc_id_key }}"
+          SsmPublicSubnetsKey: "{{ ssm_app_public_subnets_id_key }}"
+          AppAmiId: "{{ app_ami_id }}"
+          KeyPairName: "{{ app_keypair_name }}"
+          AppInstanceType: "{{ app_instance_type }}"
+          GitAnsiblePolicyArn: "arn:aws:iam::{{ account_id }}:policy/git-ansible-policy"
+          GitAnsibleRoleArn: "arn:aws:iam::{{ account_id }}:role/git-ansible-assumable-role"
+          RepositoriesRegion: "{{ aws_region }}"
+      vars:
+        local_stack_name: "{{ account_code }}-{{ aws_region_code }}-{{ application }}-application"
+        local_aws_tags:
+          Environment: "{{ aws_environment }}"
+          Name: "{{ local_stack_name }}"
+          Application: "{{ application }}"

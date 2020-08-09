@@ -1,0 +1,101 @@
+Resources:
+
+  SsmCustomDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: '2.2'
+        description: Run Commands
+        parameters: {}
+        mainSteps:
+          - action: aws:runShellScript
+            name: configureServer
+            inputs:
+              timeoutSeconds: 10
+              runCommand:
+                - pwd
+                - mkdir -pv /tmp/test
+                - touch /tmp/test/hello.txt
+                - ls /tmp/test
+
+  SsmAnsiblePlaybookDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: '2.2'
+        description: Run Ansible playbook
+        parameters:
+          RepositoryName:
+            description: The name of repository containing the Ansible playbook
+            type: String
+          PlaybookPath:
+            description: the path to the playbook file in the repository
+            default: playbook.yml
+            type: String
+          HasRequirements:
+            description: Do we have to use Ansible Galaxy to retrieve Ansible Roles
+            default: 'false'
+            type: String
+          RequirementsPath:
+            description: the path to the requirements file in the repository
+            default: requirements.yml
+            type: String
+        mainSteps:
+          - action: aws:runShellScript
+            name: configureServer
+            inputs:
+              timeoutSeconds: 3600
+              runCommand:
+                - sudo su
+                - for i in {1..5}; do sleep $(shuf -i1-30 -n1) && git clone codecommit://git-ansible@{{ RepositoryName }} /root/asbpb && break ; done
+                - |-
+                  if [ "{{ HasRequirements }}" == "true" ]; then
+                    ansible-galaxy install -r /root/asbpb/{{ RequirementsPath }}
+                  fi
+                - ansible-playbook /root/asbpb/{{ PlaybookPath }}
+                - rm -rf /root/asbpb
+
+  SsmAnsiblePlaybookDocumentSafe:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: '2.2'
+        description: Run Ansible playbook
+        parameters:
+          RepositoryName:
+            description: The name of repository containing the Ansible playbook
+            type: String
+          PlaybookPath:
+            description: the path to the playbook file in the repository
+            default: playbook.yml
+            type: String
+          HasRequirements:
+            description: Do we have to use Ansible Galaxy to retrieve Ansible Roles
+            default: 'false'
+            type: String
+          RequirementsPath:
+            description: the path to the requirements file in the repository
+            default: requirements.yml
+            type: String
+        mainSteps:
+          - action: aws:runShellScript
+            name: configureServer
+            inputs:
+              timeoutSeconds: 3600
+              runCommand:
+                - sudo su
+                - rm -rf /root/asbpb || true
+                - for i in {1..5}; do sleep $(shuf -i1-30 -n1) && git clone codecommit://git-ansible@{{ RepositoryName }} /root/asbpb && break ; done
+                - if [ $? != 0 ]; then exit 1; fi
+                - |-
+                  if [ "{{ HasRequirements }}" == "true" ]; then
+                    ansible-galaxy install -r /root/asbpb/{{ RequirementsPath }}
+                    if [ $? != 0 ]; then exit 1; fi
+                  fi
+                - ansible-playbook -i localhost, /root/asbpb/{{ PlaybookPath }}
+                - if [ $? != 0 ]; then exit 1; fi
+                - rm -rf /root/asbpb
+                - if [ $? != 0 ]; then exit 1; fi
