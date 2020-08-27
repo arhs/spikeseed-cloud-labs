@@ -1,0 +1,17 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+troposphere = "*"
+mypy = "*"
+pytest = "*"
+awacs = "*"
+boto3 = "*"
+pylint = "*"
+
+[packages]
+
+[requires]
+python_version = "3.8"
