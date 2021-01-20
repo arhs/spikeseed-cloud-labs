@@ -1,0 +1,22 @@
+
+application: quarkus
+
+default_aws_region: us-east-1
+default_aws_region_code: use1
+
+# S3
+ssm_assets_bucket_name_key: /quarkus/cfn/bucket/assets
+
+# CodeCommit
+repo_init: quarkus-aws-initialization
+repo_app: quarkus-app
+repo_codebuild_graalvm: quarkus-codebuild-graalvm
+
+# ECR
+ecr_codebuild_graalvm: quarkus/spk/codebuild/graalvm
+
+aws_accounts:
+  labs:
+    account_name: spikeseed-labs
+    account_code: l
+    environment: lab

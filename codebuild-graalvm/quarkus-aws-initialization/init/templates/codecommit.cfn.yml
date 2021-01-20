@@ -1,0 +1,28 @@
+Parameters:
+
+  AwsLambdaJavaInitRepoName:
+    Type: String
+  AwsLambdaJavaAppRepoName:
+    Type: String
+  AwsLambdaJavaCodeBuildGraalVmRepoName:
+    Type: String
+
+Resources:
+
+  AwsLambdaJavaApp:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Ref AwsLambdaJavaAppRepoName
+
+  AwsLambdaJavaInit:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Ref AwsLambdaJavaInitRepoName
+
+  AwsLambdaJavaCodeBuildGraalVm:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Ref AwsLambdaJavaCodeBuildGraalVmRepoName

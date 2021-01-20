@@ -1,0 +1,26 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo "Starting building App - $(date)"
+  build:
+    commands:
+      - echo "Current folder $(pwd)"
+
+      - ls
+      - echo $JAVA_HOME
+      - echo $GRAALVM_HOME
+
+      - java --version
+      - mvn --version
+      - aws --version
+
+      - mvn clean install -Pnative
+
+      - ls target
+
+      - aws cloudformation package --template-file app.cfn.yml  --s3-bucket $ASSETS_BUCKET_NAME --output-template-file app.out.yml
+      - aws cloudformation deploy --template-file app.out.yml --stack-name $STACK_NAME --capabilities CAPABILITY_NAMED_IAM
+  post_build:
+    commands:
+      - echo "Deployment DONE - $(date)"

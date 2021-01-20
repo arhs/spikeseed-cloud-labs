@@ -1,0 +1,33 @@
+Parameters:
+
+  AssetsBucketName:
+    Type: String
+  SsmAssetsBucketNameKey:
+    Type: String
+
+Resources:
+
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref AssetsBucketName
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Name
+          Value: !Ref AssetsBucketName
+
+  SsmAssetsBuckets:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmAssetsBucketNameKey
+      Value: !Ref AssetsBucket
