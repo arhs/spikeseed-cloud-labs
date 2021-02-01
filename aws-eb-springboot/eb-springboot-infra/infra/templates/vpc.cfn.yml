@@ -1,0 +1,232 @@
+Parameters:
+
+  AccountName:
+    Type: String
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Application:
+    Type: String
+  VpcCidr:
+    Type: String
+  PublicSubnetCidrAz1:
+    Type: String
+  PublicSubnetCidrAz2:
+    Type: String
+  AppPrivateSubnetCidrAz1:
+    Type: String
+  AppPrivateSubnetCidrAz2:
+    Type: String
+  SsmVpcIdKey:
+    Type: String
+  SsmPublicSubnetsKey:
+    Type: String
+  SsmAppPrivateSubnetsKey:
+    Type: String
+
+Resources:
+
+  #================
+  # VPC
+  #================
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}
+
+  #================
+  # Subnets
+  #================
+
+  PublicSubnetAz1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnetCidrAz1
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-public-1a
+
+  PublicSubnetAz2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnetCidrAz2
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-public-1b
+
+  AppPrivateSubnetAz1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref AppPrivateSubnetCidrAz1
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app-private-1a
+
+  AppPrivateSubnetAz2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref AppPrivateSubnetCidrAz2
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app-private-1b
+
+  #=================
+  # Internet Gateway
+  #=================
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-igw
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref Vpc
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-public-az
+
+  RouteInternetGateway:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - PublicRouteTable
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  # SubnetRouteTableAssociation (public only here)
+
+  PublicSubnetAz1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetAz1
+
+  PublicSubnetAz2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetAz2
+
+  #================
+  # NAT Gateway
+  #================
+
+  PublicSubnetAz1NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-nat-az1-eip
+
+# -- NAT in public subnets
+
+  PublicSubnetAz1NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt PublicSubnetAz1NATGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnetAz1
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-public-1a
+
+# RouteTable
+
+# -- private-rt
+
+  AppPrivateSubnetAz1RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app-private-1a
+
+  AppPrivateSubnetAz2RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-app-private-1b
+
+  # SubnetRouteTableAssociation (private only here)
+
+  AppPrivateSubnetAz1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppPrivateSubnetAz1RouteTable
+      SubnetId: !Ref AppPrivateSubnetAz1
+
+  AppPrivateSubnetAz2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref AppPrivateSubnetAz2RouteTable
+      SubnetId: !Ref AppPrivateSubnetAz2
+
+# Route to NAT
+
+  AppPrivateSubnetAz1Route:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref AppPrivateSubnetAz1RouteTable
+      NatGatewayId: !Ref PublicSubnetAz1NatGateway
+
+  AppPrivateSubnetAz2Route:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref AppPrivateSubnetAz2RouteTable
+      NatGatewayId: !Ref PublicSubnetAz1NatGateway
+
+  #================
+  # SSM Parameters
+  #================
+
+  SsmVpcId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmVpcIdKey
+      Value: !Ref Vpc
+
+  SsmPublicSubnetsId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: StringList
+      Name: !Ref SsmPublicSubnetsKey
+      Value: !Join [ ',', [ !Ref PublicSubnetAz1, !Ref PublicSubnetAz2 ] ]
+
+  SsmAppPrivateSubnetsId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: StringList
+      Name: !Ref SsmAppPrivateSubnetsKey
+      Value: !Join [ ',', [ !Ref AppPrivateSubnetAz1, !Ref AppPrivateSubnetAz2 ] ]
