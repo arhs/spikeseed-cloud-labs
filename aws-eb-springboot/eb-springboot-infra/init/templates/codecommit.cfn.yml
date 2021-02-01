@@ -1,0 +1,19 @@
+Parameters:
+
+  AppRepoName:
+    Type: String
+  InfraRepoName:
+    Type: String
+
+Resources:
+
+  AppRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref AppRepoName
+
+  InfraRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref InfraRepoName
+

@@ -1,0 +1,34 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ local_account_name }}"
+        template: "templates/cicd-app.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          CodeCommitRepoName: "{{ repo_app }}"
+          SsmAssetsBucketNameKey: "{{ ssm_assets_bucket_name_key }}"
+      vars:
+        local_account: "{{ aws_accounts.labs }}"
+        local_account_name: "{{ local_account.account_name }}"
+        local_account_code: "{{ local_account.account_code }}"
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ local_account_code }}-{{ local_region_code }}-{{ application }}-cicd-app"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ local_account.environment }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - app

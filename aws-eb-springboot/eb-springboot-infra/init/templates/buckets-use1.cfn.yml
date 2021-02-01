@@ -1,0 +1,96 @@
+Parameters:
+
+  SsmAssetsBucketNameKey:
+    Type: String
+  SsmLogsBucketNameKey:
+    Type: String
+  AwsElbAccountId:
+    Type: String
+
+Resources:
+
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  SsmAssetsBuckets:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmAssetsBucketNameKey
+      Value: !Ref AssetsBucket
+
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LogsBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !Sub arn:aws:s3:::${LogsBucket}
+              - !Sub arn:aws:s3:::${LogsBucket}/*
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
+          - Sid: DenyDeleteObjectVersion
+            Effect: Deny
+            Principal: '*'
+            Action: s3:DeleteObjectVersion
+            Resource: !Sub arn:aws:s3:::${LogsBucket}/*
+          - Sid: AWSLogDeliveryRead
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !Sub arn:aws:s3:::${LogsBucket}
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub arn:aws:s3:::${LogsBucket}/*
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AWSELBWrite
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AwsElbAccountId}:root # AWS account
+            Action: s3:PutObject
+            Resource: !Sub arn:aws:s3:::${LogsBucket}/*
+
+  SsmLogsBucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmLogsBucketNameKey
+      Value: !Ref LogsBucket
