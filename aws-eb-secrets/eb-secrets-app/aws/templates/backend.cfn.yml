@@ -1,0 +1,475 @@
+Parameters:
+
+  AccountCode:
+    Description: Code of the Account
+    Type: String
+  RegionCode:
+    Description: Code of the Region
+    Type: String
+  Environment:
+    Description: Name of the Environment
+    Type: String
+  Application:
+    Description: Name of the Application
+    Type: String
+  ServerType:
+    Description: Server Type
+    Type: String
+  SsmVpcIdKey:
+    Description: VPC ID
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmPublicSubnetsKey:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+  SsmPrivateSubnetsKey:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+  PublicHostedZoneId:
+    Type: String
+  AlbHostedZoneId:
+    Type: String
+  BackendDns:
+    Type: String
+  BackendCertificateArn:
+    Type: String
+  BackendSolutionStackName:
+    Type: String
+  SsmBackendS3BucketNameKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmBackendArchiveS3KeyKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  BackendInstanceType:
+    Type: String
+  AppMinSize:
+    Type: String
+  AppMaxSize:
+    Type: String
+  SsmLogsBucketNameKey:
+    Type: AWS::SSM::Parameter::Value<String>
+
+Resources:
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ssm-parameters-loader-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Effect: Allow
+      Policies:
+        - PolicyName: ssm-parameters-loader-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*
+              - Effect: Allow
+                Action: ssm:GetParametersByPath
+                Resource: '*'
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ssm-parameters-loader
+      Description: Retrieve parameters from SSM Parameter Store as a Lambda-backed Custom Resource in CloudFormation
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 10
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: !Sub |
+          import json
+          from re import sub
+          import urllib3
+          import boto3
+
+          SUCCESS = 'SUCCESS'
+          FAILED = 'FAILED'
+
+          HTTP = urllib3.PoolManager()
+
+          ALLOW_PATHS = [
+            '/eb-secrets/'
+          ]
+
+          def accept_key(key):
+            for v in ALLOW_PATHS:
+              if key.startswith(v):
+                return True
+            return False
+
+          def get_all_parameters():
+            ssm_client = boto3.client('ssm')
+
+            next_token = ' '
+            ssm_params = {}
+
+            while next_token is not None:
+              response = ssm_client.get_parameters_by_path(Path='/', Recursive=True, WithDecryption=True, NextToken=next_token)
+
+              for param in response.get('Parameters'):
+                if accept_key(param['Name']):
+                  ssm_params[param['Name']] = param['Value']
+
+              next_token = response.get('NextToken', None)
+
+            print(ssm_params.keys())
+
+            return ssm_params
+
+          def send_response(event, context, response_status, response_data=None):
+              response_url = event['ResponseURL']
+
+              responseBody = {
+                  'Status' : response_status,
+                  'Reason' : f'See the details in CloudWatch Log Stream: {context.log_stream_name}',
+                  'PhysicalResourceId' : context.log_stream_name,
+                  'StackId' : event['StackId'],
+                  'RequestId' : event['RequestId'],
+                  'LogicalResourceId' : event['LogicalResourceId'],
+                  'NoEcho' : True,
+                  'Data' : response_data
+              }
+
+              json_response_body = json.dumps(responseBody)
+
+              headers = {
+                  'content-type' : '',
+                  'content-length' : str(len(json_response_body))
+              }
+
+              try:
+                  response = HTTP.request('PUT',  response_url, headers=headers, body=json_response_body)
+                  print(f'Status code: {response.status}')
+              except Exception as e:
+                  print("send(..) failed executing http.request(..):", e)
+
+          def handler(event, context):
+              try:
+                  print(json.dumps(event))
+                  eventType = event['RequestType']
+
+                  if eventType == "Delete":
+                      send_response(event, context, SUCCESS)
+                  else:
+                      ssm_params = get_all_parameters()
+                      send_response(event, context, SUCCESS, ssm_params)
+              except Exception as e:
+                  print('Function failed due to exception.')
+                  print(e)
+                  send_response(event, context, FAILED)
+
+              return 'Complete'
+
+  #================
+  # IAM
+  #================
+
+  ElasticBeanstalkServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: eb-backend-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: elasticbeanstalk.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
+      Policies:
+        - PolicyName: backend-ec2-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - autoscaling:EnableMetricsCollection
+                  - autoscaling:DisableMetricsCollection
+                Resource: '*'
+
+  BackendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: backend-eb-ec2-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+      Policies:
+        - PolicyName: backend-ec2-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                Resource: '*'
+
+  BackendInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: backend-eb-instance-profile
+      Path: /
+      Roles:
+        - !Ref BackendRole
+
+  # ================
+  # Security Groups
+  # ================
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-alb-eb
+      GroupDescription: Allows access to the Backend ALB
+      VpcId: !Ref SsmVpcIdKey
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          Description: Allow Connection from the World
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-alb-eb
+
+  #================
+  # Elastic Beanstalk
+  #================
+
+  ElasticBeanstalkApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-eb
+      ResourceLifecycleConfig:
+        ServiceRole: !GetAtt ElasticBeanstalkServiceRole.Arn
+        VersionLifecycleConfig:
+          MaxCountRule:
+            DeleteSourceFromS3: false
+            Enabled: true
+            MaxCount: 10
+
+  ConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      SolutionStackName: !Ref BackendSolutionStackName
+      OptionSettings:
+
+        # aws:ec2:vpc
+        - Namespace: aws:ec2:vpc
+          OptionName: VPCId
+          Value: !Ref SsmVpcIdKey
+        - Namespace: aws:ec2:vpc
+          OptionName: ELBSubnets
+          Value: !Join [ ',', !Ref SsmPublicSubnetsKey ]
+        - Namespace: aws:ec2:vpc
+          OptionName: Subnets
+          Value: !Join [ ',', !Ref SsmPrivateSubnetsKey ]
+        - Namespace: aws:ec2:vpc
+          OptionName: AssociatePublicIpAddress
+          Value: false
+
+        # aws:elasticbeanstalk:environment
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: ServiceRole
+          Value: !Ref ElasticBeanstalkServiceRole
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: LoadBalanced
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: LoadBalancerType
+          Value: application
+
+        # aws:elasticbeanstalk:application
+        - Namespace: aws:elasticbeanstalk:application
+          OptionName: Application Healthcheck URL
+          Value: HTTP:80/actuator/health
+
+        # aws:elasticbeanstalk:application:environment
+        # - Namespace: aws:elasticbeanstalk:application:environment
+        #   OptionName: SERVER_PORT
+        #   Value: 5000
+
+        # aws:elasticbeanstalk:managedactions
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: ManagedActionsEnabled
+          Value: true
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: PreferredStartTime
+          Value: Sun:16:10
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: ServiceRoleForManagedUpdates
+          Value: !Ref ElasticBeanstalkServiceRole #AWSServiceRoleForElasticBeanstalkManagedUpdates
+
+        # aws:elasticbeanstalk:managedactions:platformupdate
+        - Namespace: aws:elasticbeanstalk:managedactions:platformupdate
+          OptionName: UpdateLevel
+          Value: minor
+        - Namespace: aws:elasticbeanstalk:managedactions:platformupdate
+          OptionName: InstanceRefreshEnabled
+          Value: true
+
+        # aws:autoscaling:updatepolicy:rollingupdate
+        - Namespace: aws:autoscaling:updatepolicy:rollingupdate
+          OptionName: RollingUpdateEnabled
+          Value: true
+        - Namespace: aws:autoscaling:updatepolicy:rollingupdate
+          OptionName: RollingUpdateType
+          Value: Immutable
+        # aws:elasticbeanstalk:command
+        - Namespace: aws:elasticbeanstalk:command
+          OptionName: DeploymentPolicy
+          Value: Immutable
+
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: SecurityGroups
+          Value: !Ref AlbSecurityGroup
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: ManagedSecurityGroup
+          Value: !Ref AlbSecurityGroup
+
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: IdleTimeout
+          Value: 100
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: AccessLogsS3Enabled
+          Value: true
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: AccessLogsS3Bucket
+          Value: !Ref SsmLogsBucketNameKey
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: AccessLogsS3Prefix
+          Value: alb
+
+        - Namespace: aws:elbv2:listener:443
+          OptionName: ListenerEnabled
+          Value: true
+        - Namespace: aws:elbv2:listener:443
+          OptionName: Protocol
+          Value: HTTPS
+        - Namespace: aws:elbv2:listener:443
+          OptionName: SSLCertificateArns
+          Value: !Ref BackendCertificateArn
+
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: HealthCheckPath
+          Value: /actuator/health
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: MatcherHTTPCode
+          Value: 200
+
+        # aws:autoscaling:launchconfiguration
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: DisableIMDSv1
+          Value: false
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: IamInstanceProfile
+          Value: !Ref BackendInstanceProfile
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: RootVolumeType
+          Value: gp2
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: RootVolumeSize
+          Value: 8
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: MonitoringInterval
+          Value: 5 minute
+
+        # aws:autoscaling:asg
+        - Namespace: aws:autoscaling:asg
+          OptionName: Cooldown
+          Value: 300
+        - Namespace: aws:autoscaling:asg
+          OptionName: MinSize
+          Value: !Ref AppMinSize
+        - Namespace: aws:autoscaling:asg
+          OptionName: MaxSize
+          Value: !Ref AppMaxSize
+
+        # aws:ec2:instances
+        - Namespace: aws:ec2:instances
+          OptionName: EnableSpot
+          Value: false
+        - Namespace: aws:ec2:instances
+          OptionName: InstanceTypes
+          Value: !Ref BackendInstanceType
+
+        # aws:elasticbeanstalk:cloudwatch:logs
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: StreamLogs
+          Value: true
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: DeleteOnTerminate
+          Value: false
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: RetentionInDays
+          Value: 3
+
+        # aws:elasticbeanstalk:cloudwatch:logs:health
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs:health
+          OptionName: HealthStreamingEnabled
+          Value: true
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs:health
+          OptionName: DeleteOnTerminate
+          Value: false
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs:health
+          OptionName: RetentionInDays
+          Value: 3
+
+        # aws:elasticbeanstalk:healthreporting:system
+        - Namespace: aws:elasticbeanstalk:healthreporting:system
+          OptionName: SystemType
+          Value: enhanced
+        - Namespace: aws:elasticbeanstalk:healthreporting:system
+          OptionName: EnhancedHealthAuthEnabled
+          Value: true
+
+  ApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      SourceBundle:
+        S3Bucket: !Ref SsmBackendS3BucketNameKey
+        S3Key: !Ref  SsmBackendArchiveS3KeyKey
+
+  ElasticBeanstalkEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-eb
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      TemplateName: !Ref ConfigurationTemplate
+      VersionLabel: !Ref ApplicationVersion
+
+  DnsRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      RecordSets:
+        - Name: !Ref BackendDns
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ElasticBeanstalkEnvironment.EndpointURL
+            HostedZoneId: !Ref AlbHostedZoneId

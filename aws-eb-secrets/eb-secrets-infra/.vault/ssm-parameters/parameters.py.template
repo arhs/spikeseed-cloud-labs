@@ -1,0 +1,6 @@
+from .ssm_utils import SsmParameterUpdater
+
+ssm = SsmParameterUpdater('spikeseed-labs', 'us-east-1')
+
+ssm.put_ssm_parameter('/eb-secrets/database/password/1', 'TODO value')
+ssm.put_ssm_parameter('/eb-secrets/database/password/2', 'TODO value')

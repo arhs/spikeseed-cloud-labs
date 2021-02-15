@@ -1,0 +1,55 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    pbk_account: "{{ aws_accounts.labs }}"
+    pbk_account_name: "{{ pbk_account.account_name }}"
+    pbk_account_code: "{{ pbk_account.account_code }}"
+    pbk_account_env: "{{ pbk_account.environment }}"
+
+  vars_files:
+    - vars/common-vars.asb.yml
+
+  tasks:
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/backend.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Environment: "{{ pbk_account_env }}"
+          Application: "{{ application }}"
+          ServerType: backend
+          SsmVpcIdKey: "{{ ssm_vpc_id_key }}"
+          SsmPublicSubnetsKey: "{{ ssm_web_public_subnets_id_key }}"
+          SsmPrivateSubnetsKey: "{{ ssm_app_private_subnets_id_key }}"
+          PublicHostedZoneId: "{{ public_hosted_zone_id }}"
+          AlbHostedZoneId: "{{ aws_config[local_region_name].alb_hz_id }}"
+          BackendDns: "{{ pbk_account.backend_dns }}"
+          BackendCertificateArn: "{{ pbk_account.backend_certificate_arn }}"
+          BackendSolutionStackName: "{{ pbk_account.backend_eb_stack_name }}"
+          SsmBackendS3BucketNameKey: "{{ ssm_assets_bucket_name_key }}"
+          SsmBackendArchiveS3KeyKey: "{{ ssm_website_eb_app_archive_s3_key_key }}"
+          BackendInstanceType: "{{ pbk_account.backend_instance_type }}"
+          AppMinSize: "{{ pbk_account.backend_asg_min_size }}"
+          AppMaxSize: "{{ pbk_account.backend_asg_max_size }}"
+          SsmLogsBucketNameKey: "{{ ssm_logs_bucket_name_key }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Env: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+          ServerType: backend
+          Service: backend
