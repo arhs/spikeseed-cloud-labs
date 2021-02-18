@@ -1,0 +1,91 @@
+# ALB Hosted Zone IDs https://docs.aws.amazon.com/general/latest/gr/elb.html
+aws_config:
+  'us-east-2':
+    alb_hz_id: Z3AADJGX6KTTL2
+  'us-east-1':
+    alb_hz_id: Z35SXDOTRQ7X7K
+  'us-west-1':
+    alb_hz_id: Z368ELLRRE2KJ0
+  'us-west-2':
+    alb_hz_id: Z1H1FL5HABSF5
+  'af-south-1':
+    alb_hz_id: Z268VQBMOI5EKX
+  'ap-east-1':
+    alb_hz_id: Z3DQVH9N71FHZ0
+  'ap-south-1':
+    alb_hz_id: ZP97RAFLXTNZK
+  'ap-northeast-3':
+    alb_hz_id: Z5LXEXXYW11ES
+  'ap-northeast-2':
+    alb_hz_id: ZWKZPGTI48KDX
+  'ap-southeast-1':
+    alb_hz_id: Z1LMS91P8CMLE5
+  'ap-southeast-2':
+    alb_hz_id: Z1GM3OXH4ZPM65
+  'ap-northeast-1':
+    alb_hz_id: Z14GRHDCWA56QT
+  'ca-central-1':
+    alb_hz_id: ZQSVJUPU6J1EY
+  'cn-north-1':
+    alb_hz_id: Z1GDH35T77C1KE
+  'cn-northwest-1':
+    alb_hz_id: ZM7IZAIOVVDZF
+  'eu-central-1':
+    alb_hz_id: Z215JYRZR1TBD5
+  'eu-west-1':
+    alb_hz_id: Z32O12XQLNTSW2
+  'eu-west-2':
+    alb_hz_id: ZHURV8PSTC4K8
+  'eu-south-1':
+    alb_hz_id: Z3ULH7SSC9OV64
+  'eu-west-3':
+    alb_hz_id: Z3Q77PNBQS71R4
+  'eu-north-1':
+    alb_hz_id: Z23TAZ6LKFMNIO
+  'me-south-1':
+    alb_hz_id: ZS929ML54UICD
+  'sa-east-1':
+    alb_hz_id: Z2P70J7HTTTPLU
+  'us-gov-east-1':
+    alb_hz_id: Z166TLBEWOO7G0
+  'us-gov-west-1':
+    alb_hz_id: Z33AYJ8TM3BH4J
+
+application: eb-bluegreen
+
+default_aws_region: us-east-1
+default_aws_region_code: use1
+
+public_hosted_zone_id: <XYZ123456789>
+
+# S3
+ssm_assets_bucket_name_key: /eb-bluegreen/cfn/bucket/assets
+ssm_logs_bucket_name_key: /eb-bluegreen/cfn/bucket/logs
+
+# VPC
+ssm_vpc_id_key: /eb-bluegreen/cfn/vpc/id
+ssm_web_public_subnets_id_key: /eb-bluegreen/cfn/vpc/subnet/web/public/ids
+ssm_app_private_subnets_id_key: /eb-bluegreen/cfn/vpc/subnet/app/private/ids
+
+# EB
+ssm_backend_eb_role_name_key: /cfn/backend/iam/role/eb/name
+ssm_backend_eb_role_arn_key: /cfn/backend/iam/role/eb/arn
+ssm_backend_instanceprofile_name_key: /cfn/backend/ec2/instanceProfile/name
+ssm_backend_sg_alb_id_key: /cfn/backend/ec2/sg/alb/id
+ssm_backend_eb_app_archive_s3_key_key: /eb-bluegreen/eb/backend/s3key
+ssm_cicd_deploy_color_key: /cicd/deploy/color
+ssm_backend_eb_endpoint_url_blue_key: /cfn/backend/eb/endpointUrl/blue
+ssm_backend_eb_endpoint_url_green_key: /cfn/backend/eb/endpointUrl/green
+
+aws_accounts:
+  labs:
+    account_name: spikeseed-labs
+    account_code: l
+    environment: lab
+    backend_dns: <example.com>
+    backend_certificate_arn: arn:aws:acm:<region>:<account_id>:certificate/<certificate_id>
+    backend_eb_stack_name: 64bit Amazon Linux 2 v3.1.5 running Corretto 11
+    backend_instance_type: t3.medium
+    backend_asg_min_size: 1
+    backend_asg_max_size: 1
+    backend_secured_header: e705287e4b124635aa716919a50a4889

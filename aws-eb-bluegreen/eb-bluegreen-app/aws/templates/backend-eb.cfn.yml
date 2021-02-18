@@ -1,0 +1,280 @@
+Parameters:
+
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Environment:
+    Type: String
+  Application:
+    Type: String
+  ServerType:
+    Type: String
+  SsmVpcIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+  SsmPublicSubnetsKey:
+    Type: AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>
+  SsmPrivateSubnetsKey:
+    Type: AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>
+  BackendCertificateArn:
+    Type: String
+  BackendSolutionStackName:
+    Type: String
+  SsmElasticBeanstalkServiceRoleNameKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmElasticBeanstalkServiceRoleArnKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmBackendInstanceProfileNameKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmBackendAlbSecurityGroupIdKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmBackendS3BucketNameKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmBackendArchiveS3KeyKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  BackendInstanceType:
+    Type: String
+  AppMinSize:
+    Type: String
+  AppMaxSize:
+    Type: String
+  SsmLogsBucketNameKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmBeanstalkEndpointUrlKey:
+    Type: String
+  SecurityToken:
+    Description: Identify the request to the ALB as coming from an authorized source
+    Type: String
+  Color:
+    Type: String
+  PublicHostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+  BackendDns:
+    Type: String
+  AlbHostedZoneId:
+    Type: String
+
+Resources:
+
+  ElasticBeanstalkApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-eb-${Color}
+      ResourceLifecycleConfig:
+        ServiceRole: !Ref SsmElasticBeanstalkServiceRoleArnKey
+        VersionLifecycleConfig:
+          MaxCountRule:
+            DeleteSourceFromS3: false
+            Enabled: true
+            MaxCount: 10
+
+  ConfigurationTemplate:
+    Type: AWS::ElasticBeanstalk::ConfigurationTemplate
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      SolutionStackName: !Ref BackendSolutionStackName
+      OptionSettings:
+
+        # aws:ec2:vpc
+        - Namespace: aws:ec2:vpc
+          OptionName: VPCId
+          Value: !Ref SsmVpcIdKey
+        - Namespace: aws:ec2:vpc
+          OptionName: ELBSubnets
+          Value: !Join [ ',', !Ref SsmPublicSubnetsKey ]
+        - Namespace: aws:ec2:vpc
+          OptionName: Subnets
+          Value: !Join [ ',', !Ref SsmPrivateSubnetsKey ]
+        - Namespace: aws:ec2:vpc
+          OptionName: AssociatePublicIpAddress
+          Value: false
+
+        # aws:elasticbeanstalk:environment
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: ServiceRole
+          Value: !Ref SsmElasticBeanstalkServiceRoleNameKey
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: LoadBalanced
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: LoadBalancerType
+          Value: application
+
+        # aws:elasticbeanstalk:application
+        - Namespace: aws:elasticbeanstalk:application
+          OptionName: Application Healthcheck URL
+          Value: HTTP:80/actuator/health
+
+        # aws:elasticbeanstalk:managedactions
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: ManagedActionsEnabled
+          Value: true
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: PreferredStartTime
+          Value: Sun:16:10
+        - Namespace: aws:elasticbeanstalk:managedactions
+          OptionName: ServiceRoleForManagedUpdates
+          Value: !Ref SsmElasticBeanstalkServiceRoleNameKey
+
+        # aws:elasticbeanstalk:managedactions:platformupdate
+        - Namespace: aws:elasticbeanstalk:managedactions:platformupdate
+          OptionName: UpdateLevel
+          Value: minor
+        - Namespace: aws:elasticbeanstalk:managedactions:platformupdate
+          OptionName: InstanceRefreshEnabled
+          Value: true
+
+        # aws:autoscaling:updatepolicy:rollingupdate
+        - Namespace: aws:autoscaling:updatepolicy:rollingupdate
+          OptionName: RollingUpdateEnabled
+          Value: true
+        - Namespace: aws:autoscaling:updatepolicy:rollingupdate
+          OptionName: RollingUpdateType
+          Value: Immutable
+
+        # aws:elasticbeanstalk:command
+        - Namespace: aws:elasticbeanstalk:command
+          OptionName: DeploymentPolicy
+          Value: Immutable
+
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: SecurityGroups
+          Value: !Ref SsmBackendAlbSecurityGroupIdKey
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: ManagedSecurityGroup
+          Value: !Ref SsmBackendAlbSecurityGroupIdKey
+
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: IdleTimeout
+          Value: 100
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: AccessLogsS3Enabled
+          Value: true
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: AccessLogsS3Bucket
+          Value: !Ref SsmLogsBucketNameKey
+        - Namespace: aws:elbv2:loadbalancer
+          OptionName: AccessLogsS3Prefix
+          Value: alb
+
+        - Namespace: aws:elbv2:listener:443
+          OptionName: ListenerEnabled
+          Value: true
+        - Namespace: aws:elbv2:listener:443
+          OptionName: Protocol
+          Value: HTTPS
+        - Namespace: aws:elbv2:listener:443
+          OptionName: SSLCertificateArns
+          Value: !Ref BackendCertificateArn
+
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: HealthCheckPath
+          Value: /actuator/health
+        - Namespace: aws:elasticbeanstalk:environment:process:default
+          OptionName: MatcherHTTPCode
+          Value: 200
+
+        # aws:autoscaling:launchconfiguration
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: DisableIMDSv1
+          Value: false
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: IamInstanceProfile
+          Value: !Ref SsmBackendInstanceProfileNameKey
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: RootVolumeType
+          Value: gp2
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: RootVolumeSize
+          Value: 8
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: MonitoringInterval
+          Value: 5 minute
+
+        # aws:autoscaling:asg
+        - Namespace: aws:autoscaling:asg
+          OptionName: Cooldown
+          Value: 300
+        - Namespace: aws:autoscaling:asg
+          OptionName: MinSize
+          Value: !Ref AppMinSize
+        - Namespace: aws:autoscaling:asg
+          OptionName: MaxSize
+          Value: !Ref AppMaxSize
+
+        # aws:ec2:instances
+        - Namespace: aws:ec2:instances
+          OptionName: EnableSpot
+          Value: false
+        - Namespace: aws:ec2:instances
+          OptionName: InstanceTypes
+          Value: !Ref BackendInstanceType
+
+        # aws:elasticbeanstalk:cloudwatch:logs
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+          OptionName: StreamLogs
+          Value: false
+        # - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        #   OptionName: DeleteOnTerminate
+        #   Value: false
+        # - Namespace: aws:elasticbeanstalk:cloudwatch:logs
+        #   OptionName: RetentionInDays
+        #   Value: 3
+
+        # aws:elasticbeanstalk:cloudwatch:logs:health
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs:health
+          OptionName: HealthStreamingEnabled
+          Value: true
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs:health
+          OptionName: DeleteOnTerminate
+          Value: false
+        - Namespace: aws:elasticbeanstalk:cloudwatch:logs:health
+          OptionName: RetentionInDays
+          Value: 3
+
+        # aws:elasticbeanstalk:healthreporting:system
+        - Namespace: aws:elasticbeanstalk:healthreporting:system
+          OptionName: SystemType
+          Value: enhanced
+        - Namespace: aws:elasticbeanstalk:healthreporting:system
+          OptionName: EnhancedHealthAuthEnabled
+          Value: true
+
+        # aws:elasticbeanstalk:customoption
+        - Namespace: aws:elasticbeanstalk:customoption
+          OptionName: HeaderXSecurityToken
+          Value: !Ref SecurityToken
+
+  ApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      SourceBundle:
+        S3Bucket: !Ref SsmBackendS3BucketNameKey
+        S3Key: !Ref  SsmBackendArchiveS3KeyKey
+
+  ElasticBeanstalkEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-eb-${Color}
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      TemplateName: !Ref ConfigurationTemplate
+      VersionLabel: !Ref ApplicationVersion
+
+  SsmBeanstalkEndpointUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmBeanstalkEndpointUrlKey
+      Value: !GetAtt ElasticBeanstalkEnvironment.EndpointURL
+
+  DnsRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      RecordSets:
+        - Name: !Sub ${Color}.${BackendDns}
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ElasticBeanstalkEnvironment.EndpointURL
+            HostedZoneId: !Ref AlbHostedZoneId

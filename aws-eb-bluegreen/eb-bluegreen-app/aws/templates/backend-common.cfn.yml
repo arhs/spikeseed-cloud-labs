@@ -1,0 +1,196 @@
+Parameters:
+
+  AccountName:
+    Type: String
+  Environment:
+    Type: String
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Application:
+    Type: String
+  ServerType:
+    Type: String
+  SsmVpcIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+  SsmBackendAlbSecurityGroupIdKey:
+    Type: String
+  SsmElasticBeanstalkServiceRoleNameKey:
+    Type: String
+  SsmElasticBeanstalkServiceRoleArnKey:
+    Type: String
+  SsmBackendInstanceProfileNameKey:
+    Type: String
+
+Resources:
+
+  #================
+  # IAM
+  #================
+
+  ElasticBeanstalkServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: eb-backend-service-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: elasticbeanstalk.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
+      Policies:
+        - PolicyName: eb-backend-service-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - autoscaling:EnableMetricsCollection
+                  - autoscaling:DisableMetricsCollection
+                Resource: '*'
+
+  BackendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: backend-eb-ec2-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+      Policies:
+        - PolicyName: backend-eb-ec2-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                Resource: '*'
+
+  BackendInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: backend-eb-ec2-instance-profile
+      Path: /
+      Roles:
+        - !Ref BackendRole
+
+  #================
+  # Security Groups
+  #================
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-alb-eb
+      GroupDescription: Allows access to the Backend ALB
+      VpcId: !Ref SsmVpcIdKey
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          Description: Allow Connection from the World
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-alb-eb
+
+  #================
+  # SSM Parameters
+  #================
+
+  SsmBackendAlbSecurityGroupId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmBackendAlbSecurityGroupIdKey
+      Value: !Ref AlbSecurityGroup
+
+  SsmElasticBeanstalkServiceRoleName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmElasticBeanstalkServiceRoleNameKey
+      Value: !Ref ElasticBeanstalkServiceRole
+
+  SsmElasticBeanstalkServiceRoleArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmElasticBeanstalkServiceRoleArnKey
+      Value: !GetAtt ElasticBeanstalkServiceRole.Arn
+
+  SsmBackendInstanceProfileName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmBackendInstanceProfileNameKey
+      Value: !Ref BackendInstanceProfile
+
+  #================
+  # Log Groups
+  #================
+
+  LogGroupMessages:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/messages
+
+  LogGroupDmesg:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/dmesg
+
+  LogGroupEbEngine:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/eb-engine.log
+
+  LogGroupEbHooks:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/eb-hooks.log
+
+  LogGroupNginxAccess:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/nginx/access.log
+
+  LogGroupNginxError:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/nginx/error.log
+
+  LogGroupWebStdout:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/web.stdout.log
+
+  LogGroupDemoSpring:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-bluegreen/backend/var/log/spring.log

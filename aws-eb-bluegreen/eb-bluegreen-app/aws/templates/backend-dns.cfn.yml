@@ -1,0 +1,24 @@
+
+Parameters:
+
+  PublicHostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+  BackendDns:
+    Type: String
+  SsmBeanstalkEndpointUrlKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  AlbHostedZoneId:
+    Type: String
+
+Resources:
+
+  DnsRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      RecordSets:
+        - Name: !Ref BackendDns
+          Type: A
+          AliasTarget:
+            DNSName: !Ref SsmBeanstalkEndpointUrlKey
+            HostedZoneId: !Ref AlbHostedZoneId

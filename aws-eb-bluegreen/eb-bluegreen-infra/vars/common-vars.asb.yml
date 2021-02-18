@@ -1,0 +1,82 @@
+# https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-logging-bucket-permissions
+aws_config:
+  'us-east-2':
+    elb_account_id: '033677994240'
+  'us-east-1':
+    elb_account_id: '127311923021'
+  'us-west-1':
+    elb_account_id: '027434742980'
+  'us-west-2':
+    elb_account_id: '797873946194'
+  'af-south-1':
+    elb_account_id: '098369216593'
+  'ap-east-1':
+    elb_account_id: '754344448648'
+  'ap-south-1':
+    elb_account_id: '718504428378'
+  'ap-northeast-3':
+    elb_account_id: '383597477331'
+  'ap-northeast-2':
+    elb_account_id: '600734575887'
+  'ap-southeast-1':
+    elb_account_id: '114774131450'
+  'ap-southeast-2':
+    elb_account_id: '783225319266'
+  'ap-northeast-1':
+    elb_account_id: '582318560864'
+  'ca-central-1':
+    elb_account_id: '985666609251'
+  'cn-north-1':
+    elb_account_id: '638102146993'
+  'cn-northwest-1':
+    elb_account_id: '037604701340'
+  'eu-central-1':
+    elb_account_id: '054676820928'
+  'eu-west-1':
+    elb_account_id: '156460612806'
+  'eu-west-2':
+    elb_account_id: '652711504416'
+  'eu-south-1':
+    elb_account_id: '635631232127'
+  'eu-west-3':
+    elb_account_id: '009996457667'
+  'eu-north-1':
+    elb_account_id: '897822967062'
+  'me-south-1':
+    elb_account_id: '076674570225'
+  'sa-east-1':
+    elb_account_id: '507241528517'
+  'us-gov-east-1':
+    elb_account_id: '190560391635'
+  'us-gov-west-1':
+    elb_account_id: '048591011584'
+
+application: eb-bluegreen
+
+default_aws_region: us-east-1
+default_aws_region_code: use1
+
+# S3
+ssm_assets_bucket_name_key: /eb-bluegreen/cfn/bucket/assets
+ssm_logs_bucket_name_key: /eb-bluegreen/cfn/bucket/logs
+ssm_vault_bucket_name_key: /eb-bluegreen/cfn/bucket/vault
+
+# CodeCommit
+repo_app: eb-bluegreen-app
+repo_infra: eb-bluegreen-infra
+
+# VPC
+ssm_vpc_id_key: /eb-bluegreen/cfn/vpc/id
+ssm_web_public_subnets_id_key: /eb-bluegreen/cfn/vpc/subnet/web/public/ids
+ssm_app_private_subnets_id_key: /eb-bluegreen/cfn/vpc/subnet/app/private/ids
+
+aws_accounts:
+  labs:
+    account_name: spikeseed-labs
+    account_code: l
+    environment: lab
+    vpc_cidr: 10.68.102.0/23
+    web_public_subnet_az1_cidr: 10.68.102.0/26
+    web_public_subnet_az2_cidr: 10.68.102.64/26
+    app_private_subnet_az1_cidr: 10.68.103.0/26
+    app_private_subnet_az2_cidr: 10.68.103.64/26
