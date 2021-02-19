@@ -1,0 +1,192 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    pbk_account: "{{ aws_accounts.labs }}"
+    pbk_account_name: "{{ pbk_account.account_name }}"
+    pbk_account_code: "{{ pbk_account.account_code }}"
+    pbk_account_env: "{{ pbk_account.environment }}"
+
+  vars_files:
+    - vars/common-vars.asb.yml
+
+  tasks:
+
+    # -----------------
+    # Common stack - Always present
+    # -----------------
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/backend-common.cfn.yml"
+        tags: "{{ local_aws_tags}}"
+        template_parameters:
+          AccountName: "{{ pbk_account_name }}"
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Environment: "{{ pbk_account_env }}"
+          Application: "{{ application }}"
+          ServerType: "{{ local_aws_tags.ServerType }}"
+          SsmVpcIdKey: "{{ ssm_vpc_id_key }}"
+          SsmBackendAlbSecurityGroupIdKey: "{{ ssm_backend_sg_alb_id_key }}"
+          SsmElasticBeanstalkServiceRoleNameKey: "{{ ssm_backend_eb_role_name_key }}"
+          SsmElasticBeanstalkServiceRoleArnKey: "{{ ssm_backend_eb_role_arn_key }}"
+          SsmBackendInstanceProfileNameKey: "{{ ssm_backend_instanceprofile_name_key }}"
+          SsmEbSolutionStackNameFinderLambdaArnKey: "{{ ssm_lambda_eb_solution_stack_finder_arn_key }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-backend-common"
+        local_aws_tags:
+          Application: "{{ application }}"
+          ServerType: backend
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - backend
+        - backend-common
+
+    # -----------------
+    # Computing the Next deployment color
+    # -----------------
+
+    - name: Get values from SSM Parameter Store
+      ansible.builtin.set_fact:
+       cicd_deploy_color: "{{ lookup( 'aws_ssm', ssm_cicd_deploy_color_key, region=default_aws_region, aws_profile=pbk_account_name ) }}"
+      tags:
+        - backend
+        - backend-eb
+        - smoke
+
+    - name: Blue/Green Deployment variables
+      ansible.builtin.set_fact:
+        new_deploy_color: "{{ 'blue' if cicd_deploy_color == 'green' else 'green' }}"
+        new_ssm_backend_eb_endpoint_url_key: "{{ ssm_backend_eb_endpoint_url_blue_key if cicd_deploy_color == 'green' else ssm_backend_eb_endpoint_url_green_key }}"
+      tags:
+        - backend
+        - backend-eb
+        - smoke
+
+    # -----------------
+    # Starting new EB env
+    # -----------------
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/backend-eb.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Environment: "{{ pbk_account_env }}"
+          Application: "{{ application }}"
+          ServerType: "{{ local_aws_tags.ServerType }}"
+          SsmVpcIdKey: "{{ ssm_vpc_id_key }}"
+          SsmPublicSubnetsKey: "{{ ssm_web_public_subnets_id_key }}"
+          SsmPrivateSubnetsKey: "{{ ssm_app_private_subnets_id_key }}"
+          BackendCertificateArn: "{{ pbk_account.backend_certificate_arn }}"
+          BackendSolutionStackNamePattern: "{{ pbk_account.backend_eb_stack_name_pattern }}"
+          SsmEbSolutionStackNameFinderLambdaArnKey: "{{ ssm_lambda_eb_solution_stack_finder_arn_key }}"
+          SsmElasticBeanstalkServiceRoleNameKey: "{{ ssm_backend_eb_role_name_key }}"
+          SsmElasticBeanstalkServiceRoleArnKey: "{{ ssm_backend_eb_role_arn_key }}"
+          SsmBackendInstanceProfileNameKey: "{{ ssm_backend_instanceprofile_name_key }}"
+          SsmBackendAlbSecurityGroupIdKey: "{{ ssm_backend_sg_alb_id_key }}"
+          SsmBackendS3BucketNameKey: "{{ ssm_assets_bucket_name_key }}"
+          SsmBackendArchiveS3KeyKey: "{{ ssm_backend_eb_app_archive_s3_key_key }}"
+          BackendInstanceType: "{{ pbk_account.backend_instance_type }}"
+          AppMinSize: "{{ pbk_account.backend_asg_min_size }}"
+          AppMaxSize: "{{ pbk_account.backend_asg_max_size}}"
+          SsmLogsBucketNameKey: "{{ ssm_logs_bucket_name_key }}"
+          SecurityToken: "{{ pbk_account.backend_secured_header }}"
+          SsmBeanstalkEndpointUrlKey: "{{ new_ssm_backend_eb_endpoint_url_key }}"
+          Color: "{{ new_deploy_color }}"
+          PublicHostedZoneId: "{{ public_hosted_zone_id }}"
+          BackendDns: "{{ pbk_account.backend_dns }}"
+          AlbHostedZoneId: "{{ aws_config[local_region_name].alb_hz_id }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-backend-{{ new_deploy_color }}"
+        local_aws_tags:
+          Application: "{{ application }}"
+          ServerType: backend
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - backend
+        - backend-eb
+
+    # -----------------
+    # Smoke Tests
+    # -----------------
+
+    - name: "Run Smoke Tests with https://{{new_deploy_color}}.{{pbk_account.backend_dns}} {{ pbk_account.backend_secured_header }}"
+      ansible.builtin.script: "scripts/smoke_test.py https://{{new_deploy_color}}.{{pbk_account.backend_dns}} {{ pbk_account.backend_secured_header }}"
+      tags:
+        - smoke
+
+    # -----------------
+    # Switch DNS
+    # -----------------
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/backend-dns.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          PublicHostedZoneId: "{{ public_hosted_zone_id }}"
+          BackendDns: "{{ pbk_account.backend_dns }}"
+          SsmBeanstalkEndpointUrlKey: "{{ new_ssm_backend_eb_endpoint_url_key }}"
+          AlbHostedZoneId: "{{ aws_config[local_region_name].alb_hz_id }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-backend-dns"
+        local_aws_tags:
+          Application: "{{ application }}"
+          ServerType: backend
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - backend
+
+    # -----------------
+    # Put new color in SSM Parameter Store
+    # -----------------
+    - name: "Put new color: <{{ new_deploy_color }}> in SSM Parameter Store"
+      aws_ssm_parameter_store:
+        name: "{{ ssm_cicd_deploy_color_key }}"
+        value: "{{ new_deploy_color }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ pbk_account_name }}"
+      tags:
+        - backend
+
+    # -----------------
+    # Remove old EB environment
+    # -----------------
+    - name: "Delete CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: absent
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/backend-eb.cfn.yml"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-backend-{{ cicd_deploy_color }}"
+      tags:
+        - backend

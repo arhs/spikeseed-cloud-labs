@@ -1,0 +1,40 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+      java: corretto11
+    commands:
+      - pip install --upgrade pip
+      - pip --version
+      - pip install awscli --upgrade --user
+      - pip install boto3 --upgrade
+      - pip install ansible --upgrade
+  pre_build:
+    commands:
+      - echo "Starting building/deploying SpringBoot App in test - $(date)"
+
+      - aws configure set profile.spikeseed-labs.credential_source EcsContainer
+      - aws configure set profile.spikeseed-labs.role_arn $ROLE_ARN
+  build:
+    commands:
+      - echo "Current folder $(pwd)"
+
+      - ls -la
+
+      # Build
+      - mvn package
+
+      # Push to S3
+      - UUID=$CODEBUILD_RESOLVED_SOURCE_VERSION-$(date "+%Y%m%d%H%M%S")
+      - S3_KEY=backend/eb-solutionstack-$UUID.zip
+      - echo "s3://$ASSETS_BUCKET_NAME/$S3_KEY"
+      - aws s3 cp --quiet target/eb-solutionstack.zip s3://$ASSETS_BUCKET_NAME/$S3_KEY
+      - aws ssm put-parameter --name /eb-solutionstack/eb/backend/s3key --value $S3_KEY --type String --overwrite --profile spikeseed-labs
+
+      # Deploy
+      - ansible-playbook --version
+      - ansible-playbook aws/main.asb.yml
+  post_build:
+    commands:
+      - echo "Deployment DONE - $(date)"

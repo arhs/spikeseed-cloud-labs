@@ -1,0 +1,7 @@
+from .ssm_utils import SsmParameterUpdater
+
+ssm = SsmParameterUpdater('spikeseed-labs', 'us-east-1')
+
+ssm.put_ssm_parameter('/cicd/deploy/color' , 'blue', value_type='String') # should only be executed the first time
+ssm.put_ssm_parameter('/eb-solutionstack/database/password/1', 'TODO value')
+ssm.put_ssm_parameter('/eb-solutionstack/database/password/2', 'TODO value')

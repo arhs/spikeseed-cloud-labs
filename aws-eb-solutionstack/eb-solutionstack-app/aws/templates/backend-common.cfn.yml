@@ -1,0 +1,317 @@
+Parameters:
+
+  AccountName:
+    Type: String
+  Environment:
+    Type: String
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Application:
+    Type: String
+  ServerType:
+    Type: String
+  SsmVpcIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+  SsmBackendAlbSecurityGroupIdKey:
+    Type: String
+  SsmElasticBeanstalkServiceRoleNameKey:
+    Type: String
+  SsmElasticBeanstalkServiceRoleArnKey:
+    Type: String
+  SsmBackendInstanceProfileNameKey:
+    Type: String
+  SsmEbSolutionStackNameFinderLambdaArnKey:
+    Type: String
+
+Resources:
+
+  #================
+  # IAM
+  #================
+
+  ElasticBeanstalkServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: eb-backend-service-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: elasticbeanstalk.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth
+        - arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkService
+      Policies:
+        - PolicyName: eb-backend-service-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - autoscaling:EnableMetricsCollection
+                  - autoscaling:DisableMetricsCollection
+                Resource: '*'
+
+  BackendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: backend-eb-ec2-role
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier
+      Policies:
+        - PolicyName: backend-eb-ec2-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTags
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                Resource: '*'
+
+  BackendInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: backend-eb-ec2-instance-profile
+      Path: /
+      Roles:
+        - !Ref BackendRole
+
+  #================
+  # Security Groups
+  #================
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-alb-eb
+      GroupDescription: Allows access to the Backend ALB
+      VpcId: !Ref SsmVpcIdKey
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          Description: Allow Connection from the World
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-alb-eb
+
+  #================
+  # SSM Parameters
+  #================
+
+  SsmBackendAlbSecurityGroupId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmBackendAlbSecurityGroupIdKey
+      Value: !Ref AlbSecurityGroup
+
+  SsmElasticBeanstalkServiceRoleName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmElasticBeanstalkServiceRoleNameKey
+      Value: !Ref ElasticBeanstalkServiceRole
+
+  SsmElasticBeanstalkServiceRoleArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmElasticBeanstalkServiceRoleArnKey
+      Value: !GetAtt ElasticBeanstalkServiceRole.Arn
+
+  SsmBackendInstanceProfileName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmBackendInstanceProfileNameKey
+      Value: !Ref BackendInstanceProfile
+
+  #================
+  # Log Groups
+  #================
+
+  LogGroupMessages:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/messages
+
+  LogGroupDmesg:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/dmesg
+
+  LogGroupEbEngine:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/eb-engine.log
+
+  LogGroupEbHooks:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/eb-hooks.log
+
+  LogGroupNginxAccess:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/nginx/access.log
+
+  LogGroupNginxError:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/nginx/error.log
+
+  LogGroupWebStdout:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/web.stdout.log
+
+  LogGroupDemoSpring:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 60
+      LogGroupName: /aws/elasticbeanstalk/eb-solutionstack/backend/var/log/spring.log
+
+  #================
+  # Lambda
+  #================
+
+  EbSolutionStackNameFinderLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: eb-solution-stack-finder-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Effect: Allow
+      Policies:
+        - PolicyName: eb-solution-stack-finder-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*
+              - Effect: Allow
+                Action: elasticbeanstalk:ListAvailableSolutionStacks
+                Resource: '*'
+
+  EbSolutionStackNameFinderLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: eb-solution-stack-finder
+      Description: Find the latest Elastic BeanStalk solution stack name as a Lambda-backed Custom Resource in CloudFormation
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 10
+      Handler: index.handler
+      Role: !GetAtt EbSolutionStackNameFinderLambdaExecutionRole.Arn
+      Code:
+        ZipFile: !Sub |
+          import json
+          import re
+          import urllib3
+          import boto3
+
+          SUCCESS = 'SUCCESS'
+          FAILED = 'FAILED'
+
+          HTTP = urllib3.PoolManager()
+
+          def get_latest_eb_stack_name(eb_stack_name_pattern):
+            eb_client = boto3.client('elasticbeanstalk')
+            # Returns a list of the available solution stack names, with the public version first and then in reverse chronological order.
+            stacks = eb_client.list_available_solution_stacks()['SolutionStacks']
+
+            compiled_pattern = re.compile(f'^{eb_stack_name_pattern}$')
+
+            for stack_name in stacks:
+              if compiled_pattern.match(stack_name):
+                print(f'EB Solution Stack Name: {stack_name}')
+                return {'EbStackName': stack_name}
+
+            return {'EbStackName': 'Stack Not Found'}
+
+          def send_response(event, context, response_status, response_data=None):
+              response_url = event['ResponseURL']
+
+              responseBody = {
+                  'Status' : response_status,
+                  'Reason' : f'See the details in CloudWatch Log Stream: {context.log_stream_name}',
+                  'PhysicalResourceId' : context.log_stream_name,
+                  'StackId' : event['StackId'],
+                  'RequestId' : event['RequestId'],
+                  'LogicalResourceId' : event['LogicalResourceId'],
+                  'NoEcho' : False,
+                  'Data' : response_data
+              }
+
+              json_response_body = json.dumps(responseBody)
+
+              headers = {
+                  'content-type' : '',
+                  'content-length' : str(len(json_response_body))
+              }
+
+              try:
+                  response = HTTP.request('PUT',  response_url, headers=headers, body=json_response_body)
+                  print(f'Status code: {response.status}')
+              except Exception as e:
+                  print("send(..) failed executing http.request(..):", e)
+
+          def handler(event, context):
+              try:
+                  print(json.dumps(event))
+                  eventType = event['RequestType']
+
+                  if eventType == "Delete":
+                      send_response(event, context, SUCCESS)
+                  else:
+                      eb_stack_name_pattern = event['ResourceProperties']['StackNamePattern']
+                      eb_stack_name = get_latest_eb_stack_name(eb_stack_name_pattern)
+                      send_response(event, context, SUCCESS, eb_stack_name)
+              except Exception as e:
+                  print('Function failed due to exception.')
+                  print(e)
+                  send_response(event, context, FAILED)
+
+              return 'Complete'
+
+  SsmEbSolutionStackNameFinderLambdaArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmEbSolutionStackNameFinderLambdaArnKey
+      Value: !GetAtt EbSolutionStackNameFinderLambda.Arn
