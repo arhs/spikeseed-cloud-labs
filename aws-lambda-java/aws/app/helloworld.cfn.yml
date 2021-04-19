@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  HelloworldCorretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: awslambdajava-helloworld
+      Handler: cloud.spikeseed.Handler::handleRequest
+      Runtime: java11
+      CodeUri: ../../lambdas/helloworld/target/java-helloworld.zip
+      MemorySize: 256
+      Timeout: 15

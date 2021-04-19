@@ -1,0 +1,9 @@
+from ssm_utils import SsmParameterUpdater
+
+# --- us-east-1
+
+ssm = SsmParameterUpdater('awslambdajava', 'spikeseed-labs', 'us-east-1')
+
+ssm.ssm_parameter('/awslambdajava/database/rds/password', '<value>', type='SecureString')
+
+ssm.execute()

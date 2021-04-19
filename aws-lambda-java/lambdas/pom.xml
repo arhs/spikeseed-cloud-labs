@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>cloud.spikeseed</groupId>
+    <artifactId>awslambda-root</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>awslambda-lambdas</artifactId>
+  <packaging>pom</packaging>
+
+  <properties>
+    <maven.compiler.parameters>true</maven.compiler.parameters>
+    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>11</maven.compiler.source>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Libraries -->
+    <aws-lambda-java-core.version>1.2.1</aws-lambda-java-core.version>
+    <aws-lambda-java-events.version>3.8.0</aws-lambda-java-events.version>
+    <aws-lambda-java-log4j2.version>1.2.0</aws-lambda-java-log4j2.version>
+    <aws-sdk.version>2.16.32</aws-sdk.version>
+    <aws-powertools.version>1.5.0</aws-powertools.version>
+    <gson.version>2.8.6</gson.version>
+    <log4j-slf4j.version>2.13.2</log4j-slf4j.version> <!-- 2.14.1 -->
+
+    <!-- Plugins -->
+    <compiler-plugin.version>3.8.1</compiler-plugin.version>
+    <assembly-plugin.version>3.3.0</assembly-plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/bom -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/org.junit/junit-bom -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.7.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-core -->
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-lambda-java-core</artifactId>
+        <version>${aws-lambda-java-core.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-events -->
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-lambda-java-events</artifactId>
+        <version>${aws-lambda-java-events.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+      <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>${gson.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-log4j2 -->
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-lambda-java-log4j2</artifactId>
+        <version>${aws-lambda-java-log4j2.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j18-impl -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-slf4j18-impl</artifactId>
+        <version>${log4j-slf4j.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/software.amazon.lambda/powertools-tracing -->
+      <dependency>
+        <groupId>software.amazon.lambda</groupId>
+        <artifactId>powertools-tracing</artifactId>
+        <version>${aws-powertools.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/software.amazon.lambda/powertools-logging -->
+      <dependency>
+        <groupId>software.amazon.lambda</groupId>
+        <artifactId>powertools-logging</artifactId>
+        <version>${aws-powertools.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/software.amazon.lambda/powertools-metrics -->
+      <dependency>
+        <groupId>software.amazon.lambda</groupId>
+        <artifactId>powertools-metrics</artifactId>
+        <version>${aws-powertools.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${compiler-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>${assembly-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>zip-assembly</id>
+              <phase>package</phase>
+              <goals>
+                <goal>single</goal>
+              </goals>
+              <configuration>
+                <finalName>${project.name}</finalName>
+                <appendAssemblyId>false</appendAssemblyId>
+                <descriptors>
+                  <descriptor>src/main/assembly/package.xml</descriptor>
+                </descriptors>
+                <archive>
+                  <manifest>
+                    <addClasspath>true</addClasspath>
+                    <classpathPrefix>lib/</classpathPrefix>
+                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                  </manifest>
+                </archive>
+                <attach>false</attach>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <modules>
+    <module>helloworld</module>
+    <module>echo</module>
+    <module>apigateway</module>
+    <module>logger</module>
+    <module>log4j2</module>
+    <module>slf4j-log4j2</module>
+    <module>sdk</module>
+    <module>powertools</module>
+  </modules>
+
+</project>

@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        DetailedMetricsEnabled: True
+        ThrottlingBurstLimit: 200
+      FailOnWarnings: True
+
+  ApiGatewayCorretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: awslambdajava-apigateway
+      Handler: cloud.spikeseed.Handler
+      Runtime: java11
+      CodeUri: ../../lambdas/apigateway/target/java-apigateway.zip
+      MemorySize: 256
+      Timeout: 15
+      Events:
+        ExplicitApi: # warning: creates a public endpoint
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: ANY
+            Path: /{proxy+}
+            TimeoutInMillis: 3000
+            PayloadFormatVersion: '2.0'
+            RouteSettings:
+              ThrottlingBurstLimit: 200

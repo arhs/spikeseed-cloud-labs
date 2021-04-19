@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  SdkCorretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: awslambdajava-sdk
+      Handler: cloud.spikeseed.Handler
+      Runtime: java11
+      CodeUri: ../../lambdas/sdk/target/java-sdk.zip
+      MemorySize: 512
+      Timeout: 15
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/lambdajava/*

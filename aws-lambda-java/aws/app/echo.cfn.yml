@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  EchoCorretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: awslambdajava-echo
+      Handler: cloud.spikeseed.Handler::handleRequest
+      Runtime: java11
+      CodeUri: ../../lambdas/echo/target/java-echo.zip
+      MemorySize: 256
+      Timeout: 15

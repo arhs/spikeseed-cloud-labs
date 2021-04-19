@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  Log4j2Corretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: awslambdajava-log4j2
+      Handler: cloud.spikeseed.Handler
+      Runtime: java11
+      CodeUri: ../../lambdas/log4j2/target/java-log4j2.zip
+      MemorySize: 256
+      Timeout: 15

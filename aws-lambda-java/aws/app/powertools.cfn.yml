@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        DetailedMetricsEnabled: True
+        ThrottlingBurstLimit: 200
+      FailOnWarnings: True
+
+  ApiGatewayCorretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: awslambdajava-powertools
+      Handler: cloud.spikeseed.Handler
+      Runtime: java11
+      CodeUri: ../../lambdas/powertools/target/java-powertools.zip
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/lambdajava/*
+      Tracing: Active
+      Environment:
+        Variables:
+#          POWERTOOLS_METRICS_NAMESPACE: ServerlessApp
+          POWERTOOLS_SERVICE_NAME: java-powertools
+          POWERTOOLS_LOG_LEVEL: DEBUG
+      Events:
+        ExplicitApi: # warning: creates a public endpoint
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: ANY
+            Path: /{proxy+}
+            TimeoutInMillis: 30000
+            PayloadFormatVersion: '2.0'
+            RouteSettings:
+              ThrottlingBurstLimit: 200

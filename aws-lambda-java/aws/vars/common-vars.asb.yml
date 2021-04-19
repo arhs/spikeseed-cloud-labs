@@ -1,0 +1,14 @@
+application: lambdajava
+
+default_aws_region: us-east-1
+default_aws_region_code: use1
+
+# CodeCommit
+repo_app_name: aws-lambda-java-app
+
+aws_accounts:
+  labs:
+    account_name: spikeseed-labs
+    account_code: l
+    environment: lab
+    assets_bucket_name: "l-use1-{{ application }}-assets"

@@ -1,0 +1,51 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+      java: corretto11
+    commands:
+      - pip install --upgrade pip
+      - pip --version
+      - pip install awscli --upgrade --user
+      - pip install boto3 --upgrade
+      - pip install ansible --upgrade
+  pre_build:
+    commands:
+      - echo "Starting building/deploying Apps - $(date)"
+  build:
+    commands:
+      - echo "Current folder $(pwd)"
+
+      - ls -la
+
+      - mvn package
+
+      - cd aws/app
+      # helloworld
+      - aws cloudformation package --template-file helloworld.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file helloworld.out.yml
+      - aws cloudformation deploy --template-file helloworld.out.yml --stack-name l-use1-lambdajava-helloworld --capabilities CAPABILITY_NAMED_IAM
+      # echo
+      - aws cloudformation package --template-file echo.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file echo.out.yml
+      - aws cloudformation deploy --template-file echo.out.yml --stack-name l-use1-lambdajava-echo --capabilities CAPABILITY_NAMED_IAM
+      # apigateway
+      - aws cloudformation package --template-file apigateway.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file apigateway.out.yml
+      - aws cloudformation deploy --template-file apigateway.out.yml --stack-name l-use1-lambdajava-apigateway --capabilities CAPABILITY_NAMED_IAM
+      # logger
+      - aws cloudformation package --template-file logger.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file logger.out.yml
+      - aws cloudformation deploy --template-file logger.out.yml --stack-name l-use1-lambdajava-logger --capabilities CAPABILITY_NAMED_IAM
+      # log4j2
+      - aws cloudformation package --template-file log4j2.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file log4j2.out.yml
+      - aws cloudformation deploy --template-file log4j2.out.yml --stack-name l-use1-lambdajava-log4j2 --capabilities CAPABILITY_NAMED_IAM
+      # slf4j-log4j2
+      - aws cloudformation package --template-file slf4j-log4j2.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file slf4j-log4j2.out.yml
+      - aws cloudformation deploy --template-file slf4j-log4j2.out.yml --stack-name l-use1-lambdajava-slf4j-log4j2 --capabilities CAPABILITY_NAMED_IAM
+      # sdk
+      - aws cloudformation package --template-file sdk.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file sdk.out.yml
+      - aws cloudformation deploy --template-file sdk.out.yml --stack-name l-use1-lambdajava-sdk --capabilities CAPABILITY_NAMED_IAM
+      # powertools
+      - aws cloudformation package --template-file powertools.cfn.yml --s3-bucket $ASSETS_BUCKET_NAME --output-template-file powertools.out.yml
+      - aws cloudformation deploy --template-file powertools.out.yml --stack-name l-use1-lambdajava-powertools --capabilities CAPABILITY_NAMED_IAM
+  post_build:
+    commands:
+      - echo "Deployment DONE - $(date)"
