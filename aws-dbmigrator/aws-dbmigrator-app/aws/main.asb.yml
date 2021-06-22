@@ -1,0 +1,7 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+- import_playbook: infra/main.asb.yml
+- import_playbook: lambdas/main.asb.yml

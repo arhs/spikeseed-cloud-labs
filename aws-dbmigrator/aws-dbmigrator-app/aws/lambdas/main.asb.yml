@@ -1,0 +1,264 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    pbk_account: "{{ aws_accounts['lab'] }}"
+    pbk_account_name: "{{ pbk_account.account_name }}"
+    pbk_account_code: "{{ pbk_account.account_code }}"
+    pbk_account_env: "{{ pbk_account.environment }}"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# Initialization
+# ======================================================================================================================
+
+    - name: Retrieving S3 Keys
+      ansible.builtin.set_fact:
+        latest_init_s3key: "{{ lookup( 'aws_ssm', ssm_lambda_dbinit_latest_s3key_key, aws_profile=pbk_account_name, region=default_aws_region ) }}"
+        latest_migrations_hw_s3key: "{{ lookup( 'aws_ssm', ssm_lambda_dbmigrations_helloworld_latest_s3key_key, aws_profile=pbk_account_name, region=default_aws_region ) }}"
+        current_init_s3key: "{{ lookup( 'aws_ssm', ssm_lambda_dbinit_current_s3key_key, aws_profile=pbk_account_name, region=default_aws_region ) }}"
+        current_migrations_hw_s3key: "{{ lookup( 'aws_ssm', ssm_lambda_dbmigrations_helloworld_current_s3key_key, aws_profile=pbk_account_name, region=default_aws_region ) }}"
+      tags:
+        - dbinit
+        - dbmigrations-hw
+
+    - name: Check is update needed
+      ansible.builtin.set_fact:
+        update_init: "{{ latest_init_s3key != current_init_s3key }}"
+        update_hw: "{{ latest_migrations_hw_s3key != current_migrations_hw_s3key }}"
+      tags:
+        - dbinit
+        - dbmigrations-hw
+
+    - name: Debug parameters
+      debug:
+        msg:
+          - latest_init_s3key: "{{ latest_init_s3key }}"
+          - latest_migrations_hw_s3key: "{{ latest_migrations_hw_s3key }}"
+          - current_init_s3key: "{{ current_init_s3key }}"
+          - current_migrations_hw_s3key: "{{ current_migrations_hw_s3key }}"
+          - update_init: "{{ update_init }}"
+          - update_hw: "{{ update_hw }}"
+      tags:
+        - dbinit
+        - dbmigrations-hw
+
+# ======================================================================================================================
+# Database Initializer
+# ======================================================================================================================
+
+    - name: Update DB Init S3 Key for Lambda
+      aws_ssm_parameter_store:
+        name: "{{ ssm_lambda_dbinit_current_s3key_key }}"
+        value: "{{ latest_init_s3key }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ pbk_account_name }}"
+      when: update_init
+      tags:
+        - dbinit
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: templates/dbinit.cfn.yml
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Application: "{{ application }}"
+          LambdaName: "{{ lambda_dbinit_name }}"
+          LambdaHandler: "{{ lambda_dbinit_handler }}"
+          SsmLambdaArnKey: "{{ ssm_lambda_dbinit_arn_key }}"
+          BucketName: "{{ pbk_account.assets_bucket_name }}"
+          SsmS3KeyKey: "{{ ssm_lambda_dbinit_current_s3key_key }}"
+          SsmVpcIdKey: "{{ ssm_dbmigrator_vpc_id_key }}"
+          SsmPrivateSubnetsKey: "{{ ssm_dbmigrator_app_private_subnets_id_key }}"
+          SsmDbSqlSecurityGroupIdKey: "{{ ssm_dbmigrator_sg_db_sql_id_key }}"
+          SsmDatabaseJdbcUrlKey: "{{ ssm_dbmigrator_rds_jdbc_url_nodb_key }}"
+          DatabaseClusterSecretName: "{{ pbk_account.mysql_cluster_secret_name }}"
+          DatabaseDbHelloWorldSecretName: "{{ pbk_account.mysql_helloworld_secret_name }}"
+          DatabaseNameHelloWorld: "{{ pbk_account.mysql_db_helloworld_name }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-{{ lambda_dbinit_name }}-lambda"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      when: update_init
+      tags:
+        - dbinit
+
+    - name: Retrieving DB Init ARN
+      ansible.builtin.set_fact:
+        lambda_dbinit_arn: "{{ lookup( 'aws_ssm', ssm_lambda_dbinit_arn_key, aws_profile=pbk_account_name, region=default_aws_region ) }}"
+      when: update_init
+      tags:
+        - dbinit
+
+    - name: Print DB Init ARN
+      debug:
+        msg: "{{ lambda_dbinit_arn }}"
+      when: update_init
+      tags:
+        - dbinit
+
+    - name: Execute DB Init Lambda
+      community.aws.execute_lambda:
+        function_arn: "{{ lambda_dbinit_arn }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ pbk_account_name }}"
+        tail_log: true
+        wait: true
+      register: lambda_dbinit_response
+      when: update_init
+      tags:
+        - dbinit
+
+    - name: Print DB Init Lambda execution
+      debug:
+        msg: "{{ lambda_dbinit_response }}"
+      when: update_init
+      tags:
+        - dbinit
+
+# ======================================================================================================================
+# Database Migrations HelloWorld
+# ======================================================================================================================
+
+    - name: Update Migrations Hello World S3 Key for Lambda
+      aws_ssm_parameter_store:
+        name: "{{ ssm_lambda_dbmigrations_helloworld_current_s3key_key }}"
+        value: "{{ latest_migrations_hw_s3key }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ pbk_account_name }}"
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: templates/dbmigrations.cfn.yml
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Application: "{{ application }}"
+          LambdaName: "{{ lambda_dbmigrations_helloworld_name }}"
+          LambdaHandler: "{{ lambda_dbmigrations_helloworld_handler }}"
+          SsmLambdaArnKey: "{{ ssm_lambda_dbmigrations_helloworld_arn_key }}"
+          BucketName: "{{ pbk_account.assets_bucket_name }}"
+          SsmS3KeyKey: "{{ ssm_lambda_dbmigrations_helloworld_current_s3key_key }}"
+          SsmVpcIdKey: "{{ ssm_dbmigrator_vpc_id_key }}"
+          SsmPrivateSubnetsKey: "{{ ssm_dbmigrator_app_private_subnets_id_key }}"
+          SsmDbSqlSecurityGroupIdKey: "{{ ssm_dbmigrator_sg_db_sql_id_key }}"
+          DatabaseSecretName: "{{ pbk_account.mysql_cluster_secret_name }}"
+          SsmDatabaseJdbcUrlKey: "{{ ssm_dbmigrator_rds_jdbc_url_helloworld_key }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-{{ lambda_dbmigrations_helloworld_name }}-lambda"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+    - name: Retrieving DB Migrations Hello World ARN
+      ansible.builtin.set_fact:
+        lambda_dbmigrations_hw_arn: "{{ lookup( 'aws_ssm', ssm_lambda_dbmigrations_helloworld_arn_key, aws_profile=pbk_account_name, region=default_aws_region ) }}"
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+    - name: Print DB Migrations Hello World ARN
+      debug:
+        msg: "{{ lambda_dbmigrations_hw_arn }}"
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+    - name: Execute DB Migrations Hello World Lambda - Clean
+      community.aws.execute_lambda:
+        function_arn: "{{ lambda_dbmigrations_hw_arn }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ pbk_account_name }}"
+        tail_log: true
+        wait: true
+        payload:
+          action: clean
+      register: lambda_dbmigrations_hw_response
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+    - name: Execute DB Migrations Hello World Lambda - Migrate
+      community.aws.execute_lambda:
+        function_arn: "{{ lambda_dbmigrations_hw_arn }}"
+        region: "{{ default_aws_region }}"
+        profile: "{{ pbk_account_name }}"
+        tail_log: true
+        wait: true
+      register: lambda_dbmigrations_hw_response
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+    - name: Print DB Migrations Hello World Lambda execution
+      debug:
+        msg: "{{ lambda_dbmigrations_hw_response }}"
+      when: update_hw
+      tags:
+        - dbmigrations-hw
+
+# ======================================================================================================================
+# API Gateway + Lambda
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: templates/helloworld.cfn.yml
+        tags: "{{ local_aws_tags }}"
+        capabilities:
+          - CAPABILITY_IAM
+          - CAPABILITY_NAMED_IAM
+          - CAPABILITY_AUTO_EXPAND
+        template_parameters:
+          Application: "{{ application }}"
+          LambdaName: "{{ lambda_helloworld_name }}"
+          LambdaHandler: "{{ lambda_helloworld_handler }}"
+          BucketName: "{{ pbk_account.assets_bucket_name }}"
+          SsmS3KeyKey: "{{ ssm_lambda_helloworld_latest_s3key_key }}"
+          SsmDbClusterArnKey: "{{ ssm_dbmigrator_rds_cluster_arn_key }}"
+          SsmDbSecretArnKey: "{{ ssm_dbmigrator_rds_secret_helloworld_arn_key }}"
+          DatabaseName: "{{ pbk_account.mysql_db_helloworld_name }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-{{ lambda_helloworld_name }}-lambda"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - helloworld

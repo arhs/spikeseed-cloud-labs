@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>cloud.spikeseed.helloworld</groupId>
+  <artifactId>lambdas</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>dbinit</module>
+    <module>migrations-helloworld</module>
+    <module>helloworld</module>
+  </modules>
+
+  <properties>
+    <maven.compiler.parameters>true</maven.compiler.parameters>
+    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.source>11</maven.compiler.source>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- libraries -->
+    <aws-lambda-java-core.version>1.2.1</aws-lambda-java-core.version>
+    <aws-lambda-java-events.version>3.9.0</aws-lambda-java-events.version>
+    <aws-lambda-java-log4j2.version>1.2.0</aws-lambda-java-log4j2.version>
+    <aws-lambda-log4j-slf4j.version>2.13.2</aws-lambda-log4j-slf4j.version>
+    <aws-lambda-apache-commons-logging.version>1.2</aws-lambda-apache-commons-logging.version>
+    <aws-sdk.version>2.16.86</aws-sdk.version>
+    <mysql-connector-java.version>8.0.25</mysql-connector-java.version>
+    <flyway-core-version>7.10.0</flyway-core-version>
+    <!-- maven plugins -->
+    <assembly-plugin.version>3.3.0</assembly-plugin.version>
+    <dependency-check-maven.version>6.1.5</dependency-check-maven.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- https://mvnrepository.com/artifact/software.amazon.awssdk/bom -->
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-events -->
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-lambda-java-events</artifactId>
+        <version>${aws-lambda-java-events.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+      <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>${mysql-connector-java.version}</version>
+      </dependency>
+      <!-- https://mvnrepository.com/artifact/org.flywaydb/flyway-core -->
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+        <version>${flyway-core-version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-core -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-lambda-java-core</artifactId>
+      <version>${aws-lambda-java-core.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-log4j2 -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-lambda-java-log4j2</artifactId>
+      <version>${aws-lambda-java-log4j2.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j18-impl -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j18-impl</artifactId>
+      <version>${aws-lambda-log4j-slf4j.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>${assembly-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>zip-assembly</id>
+              <phase>package</phase>
+              <goals>
+                <goal>single</goal>
+              </goals>
+              <configuration>
+                <finalName>${project.name}</finalName>
+                <appendAssemblyId>false</appendAssemblyId>
+                <descriptors>
+                  <descriptor>src/main/assembly/package.xml</descriptor>
+                </descriptors>
+                <archive>
+                  <manifest>
+                    <addClasspath>true</addClasspath>
+                    <classpathPrefix>lib/</classpathPrefix>
+                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                  </manifest>
+                </archive>
+                <attach>false</attach>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+</project>

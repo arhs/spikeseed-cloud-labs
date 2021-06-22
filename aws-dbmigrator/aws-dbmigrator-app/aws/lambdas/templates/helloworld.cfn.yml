@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+
+  Application:
+    Type: String
+  LambdaName:
+    Type: String
+  LambdaHandler:
+    Type: String
+  BucketName:
+    Type: String
+  SsmS3KeyKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmDbClusterArnKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmDbSecretArnKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  DatabaseName:
+    Type: String
+
+Resources:
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        DetailedMetricsEnabled: True
+        ThrottlingBurstLimit: 200
+      FailOnWarnings: True
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Application}-${LambdaName}-lambda-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Effect: Allow
+      Policies:
+        - PolicyName: !Sub ${Application}-${LambdaName}-lambda-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SsmDbSecretArnKey
+              - Effect: Allow
+                Action: rds-data:*
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*:*
+
+  ApiGatewayCorretto:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${Application}-${LambdaName}
+      Role: !GetAtt LambdaRole.Arn
+      Handler: !Ref LambdaHandler
+      Runtime: java11
+      CodeUri:
+        Bucket: !Ref BucketName
+        Key: !Ref SsmS3KeyKey
+      MemorySize: 512
+      Timeout: 60
+      Events:
+        ExplicitApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: ANY
+            Path: /{proxy+}
+            TimeoutInMillis: 3000
+            PayloadFormatVersion: '2.0'
+            RouteSettings:
+              ThrottlingBurstLimit: 200
+      Environment:
+        Variables:
+          DATABASE_CLUSTER_ARN: !Ref SsmDbClusterArnKey
+          DATABASE_SECRET_ARN: !Ref  SsmDbSecretArnKey
+          DATABASE_NAME: !Ref DatabaseName

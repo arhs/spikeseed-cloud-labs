@@ -1,0 +1,106 @@
+Parameters:
+
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Application:
+    Type: String
+  LambdaName:
+    Type: String
+  LambdaHandler:
+    Type: String
+  SsmLambdaArnKey:
+    Type: String
+  BucketName:
+    Type: String
+  SsmS3KeyKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmVpcIdKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  SsmPrivateSubnetsKey:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+  SsmDbSqlSecurityGroupIdKey:
+    Type: AWS::SSM::Parameter::Value<String>
+  DatabaseSecretName:
+    Type: String
+  SsmDatabaseJdbcUrlKey:
+    Type: AWS::SSM::Parameter::Value<String>
+
+Resources:
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${Application}-${LambdaName}-lambda-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+            Effect: Allow
+      Policies:
+        - PolicyName: !Sub ${Application}-${LambdaName}-lambda-role-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*:*:*
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-${LambdaName}-lambda
+      GroupDescription: Allow access to the DB Creator Lambda
+      VpcId: !Ref SsmVpcIdKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${LambdaName}-lambda
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${Application}-${LambdaName}
+      Description: Execute Database Migration Scripts
+      Runtime: java11
+      MemorySize: 512
+      Timeout: 60
+      Handler: !Ref LambdaHandler
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Ref SsmS3KeyKey
+      Environment:
+        Variables:
+          DATABASE_SECRET_NAME: !Ref DatabaseSecretName
+          DATABASE_JDBC_URL: !Ref  SsmDatabaseJdbcUrlKey
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+          - !Ref SsmDbSqlSecurityGroupIdKey
+        SubnetIds: !Ref SsmPrivateSubnetsKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${LambdaName}
+
+  SsmLambdaArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmLambdaArnKey
+      Value: !GetAtt Lambda.Arn

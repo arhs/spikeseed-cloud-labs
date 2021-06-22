@@ -1,0 +1,20 @@
+---
+application: dbmigrator
+
+default_aws_region: us-east-1
+default_aws_region_code: use1
+
+# CodeCommit
+repo_init_name: aws-dbmigrator-init
+repo_app_name: aws-dbmigrator-app
+
+# SG
+ssm_dbmigrator_sg_db_sql_id_key: /dbmigrator/cfn/ec2/sg/dbsql/id
+
+aws_accounts:
+  labs:
+    account_name: spikeseed-labs
+    account_code: l
+    environment: lab
+    assets_bucket_name: "l-use1-{{ application }}-assets"
+    logs_bucket_name: "l-use1-{{ application }}-logs"

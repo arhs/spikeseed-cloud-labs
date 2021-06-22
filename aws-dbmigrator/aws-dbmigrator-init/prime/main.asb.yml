@@ -1,0 +1,67 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    pbk_account: "{{ aws_accounts.labs }}"
+    pbk_account_name: "{{ pbk_account.account_name }}"
+    pbk_account_code: "{{ pbk_account.account_code }}"
+    pbk_account_env: "{{ pbk_account.environment }}"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# Buckets
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/buckets-use1.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AssetsBucketName: "{{ pbk_account.assets_bucket_name }}"
+          LogsBucketName: "{{ pbk_account.logs_bucket_name }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-buckets"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - buckets
+
+# ======================================================================================================================
+# CodeCommit
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/codecommit.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          ApplicationRepoName: "{{ repo_app_name }}"
+          InitializationRepoName: "{{ repo_init_name }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-codecommit"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - codecommit

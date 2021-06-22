@@ -1,0 +1,21 @@
+Parameters:
+
+  ApplicationRepoName:
+    Type: String
+  InitializationRepoName:
+    Type: String
+
+Resources:
+
+  ApplicationRepo:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Ref ApplicationRepoName
+
+  InitializationRepo:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Ref InitializationRepoName
+

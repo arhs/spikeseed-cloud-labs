@@ -1,0 +1,219 @@
+Transform: AWS::SecretsManager-2020-07-23
+
+Parameters:
+
+  AccountName:
+    Type: String
+  Environment:
+    Type: String
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Application:
+    Type: String
+  ServerType:
+    Type: String
+  SsmVpcIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+  SsmPrivateSubnetsKey:
+    Type: AWS::SSM::Parameter::Value<List<AWS::EC2::Subnet::Id>>
+  SsmPrivateHostedZoneIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::Route53::HostedZone::Id>
+  DatabaseFamily:
+    Type: String
+    Default: aurora-mysql5.7
+  DatabaseVersion:
+    Type: String
+    Default: 5.7.mysql_aurora.2.10.0 # aws rds describe-db-engine-versions --engine aurora-mysql --query "DBEngineVersions[].EngineVersion"
+  SsmDbSqlSecurityGroupIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::SecurityGroup::Id>
+  DatabaseMinCapacity:
+    Type: String
+  DatabaseMaxCapacity:
+    Type: String
+  SsmDatabaseClusterArnKey:
+    Type: String
+  SsmDatabaseClusterEndpointKey:
+    Type: String
+  DatabaseFqdn:
+    Type: String
+  SsmJdbcUrlKey:
+    Type: String
+  SsmDatabaseNameHelloWorldKey:
+    Type: String
+  SsmJdbcUrlHelloWorldKey:
+    Type: String
+  DatabaseClusterSecretName:
+    Type: String
+  DatabaseDbHelloWorldSecretName:
+    Type: String
+  SsmDbClusterSecretArnKey:
+    Type: String
+  SsmDbHelloWorldSecretArnKey:
+    Type: String
+
+Resources:
+
+  DBClusterSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Ref DatabaseClusterSecretName
+      Description: Master user credentials for the database-cluster
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\$`&'
+      Tags:
+        - Key: Name
+          Value: !Ref DatabaseClusterSecretName
+
+  SsmDbClusterSecretArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmDbClusterSecretArnKey
+      Value: !Ref DBClusterSecret
+
+  DBHelloWorldSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Ref DatabaseDbHelloWorldSecretName
+      Description: Master user credentials for the helloworld database
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "user_helloworld"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\$`&'
+      Tags:
+        - Key: Name
+          Value: !Ref DatabaseDbHelloWorldSecretName
+
+  SsmDbHelloWorldSecretArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmDbHelloWorldSecretArnKey
+      Value: !Ref DBHelloWorldSecret
+
+  DBClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref SsmVpcIdKey
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-cluster
+      GroupDescription: Allows access to the Database
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref SsmDbSqlSecurityGroupIdKey
+          Description: Allow Connection from the bearer of the DB SQL Security Group
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-cluster
+
+  DBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-cluster
+      Family: !Ref DatabaseFamily
+      Parameters:
+        time_zone: Europe/Paris
+        require_secure_transport: 'ON'
+        tls_version: TLSv1.2
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-cluster
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-subnet-group
+      SubnetIds: !Ref SsmPrivateSubnetsKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-subnet-group
+
+  DBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DeletionProtection: true
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBClusterSecret}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBClusterSecret}::password}}'
+      Engine: aurora-mysql
+      EngineMode: serverless
+      EngineVersion: !Ref DatabaseVersion
+      StorageEncrypted: true
+      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref DBClusterSecurityGroup
+      ScalingConfiguration:
+        AutoPause: true
+        MaxCapacity: !Ref DatabaseMinCapacity
+        MinCapacity: !Ref DatabaseMaxCapacity
+        SecondsUntilAutoPause: 600
+      EnableHttpEndpoint: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-cluster
+
+  DbRecords:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref SsmPrivateHostedZoneIdKey
+      RecordSets:
+        - Name: !Ref DatabaseFqdn
+          Type: CNAME
+          TTL: 60
+          ResourceRecords:
+            - !GetAtt DBCluster.Endpoint.Address
+
+  SsmDatabaseClusterEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmDatabaseClusterEndpointKey
+      Value: !GetAtt DBCluster.Endpoint.Address
+
+  SsmJdbcUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmJdbcUrlKey
+      Value: !Sub jdbc:mysql://${DatabaseFqdn}:3306?useSsl=true&enabledTLSProtocols=TLSv1.2
+
+  SsmJdbcUrlHelloWorld:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmJdbcUrlHelloWorldKey
+      Value: !Sub jdbc:mysql://${DatabaseFqdn}:3306/${SsmDatabaseNameHelloWorldKey}?useSsl=true&enabledTLSProtocols=TLSv1.2
+
+  SsmDatabaseClusterArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmDatabaseClusterArnKey
+      Value: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${DBCluster}
+
+  SecretRDSInstanceAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DBClusterSecret
+      TargetId: !Ref DBCluster
+      TargetType: AWS::RDS::DBCluster
+
+  SecretRotationSchedule:
+    Type: AWS::SecretsManager::RotationSchedule
+    DependsOn: SecretRDSInstanceAttachment
+    Properties:
+      SecretId: !Ref DBClusterSecret
+      HostedRotationLambda:
+        RotationType: MySQLSingleUser
+        RotationLambdaName: !Sub ${AccountCode}-${RegionCode}-${Application}-${ServerType}-secretsmanagerrotation
+        VpcSecurityGroupIds: !Ref SsmDbSqlSecurityGroupIdKey
+        VpcSubnetIds: !Join [ ',', !Ref SsmPrivateSubnetsKey]
+      RotationRules:
+        AutomaticallyAfterDays: 30

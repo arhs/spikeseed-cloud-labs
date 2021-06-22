@@ -1,0 +1,30 @@
+Parameters:
+
+  AccountCode:
+    Type: String
+  RegionCode:
+    Type: String
+  Application:
+    Type: String
+  SsmVpcIdKey:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>
+  SsmDbSqlSecurityGroupIdKey:
+    Type: String
+Resources:
+
+  DbSqlSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AccountCode}-${RegionCode}-${Application}-sql
+      GroupDescription: Allows access to the Database to the bearer of this Security Group
+      VpcId: !Ref SsmVpcIdKey
+      Tags:
+        - Key: Name
+          Value: !Sub ${AccountCode}-${RegionCode}-${Application}-sql
+
+  SsmDbSqlSecurityGroupId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Ref SsmDbSqlSecurityGroupIdKey
+      Value: !Ref DbSqlSecurityGroup

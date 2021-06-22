@@ -1,0 +1,25 @@
+version: "3.3"
+
+services:
+
+  mysql_demo:
+    container_name: mysql_demo
+    image: mysql/mysql-server:5.7
+    cap_add:
+      - SYS_NICE
+    ports:
+      - 3306:3306
+    volumes:
+      - ./provision/db:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_ROOT_PASSWORD: password
+
+  flyway_demo:
+    container_name: flyway_demo
+    image: flyway/flyway:7.10
+    command: -url=jdbc:mysql://mysql_demo -schemas=demo_database -user=root -password=password -connectRetries=10 clean migrate
+    volumes:
+      - ../aws/lambdas/migrations-helloworld/src/main/resources/db/migration:/flyway/sql
+    depends_on:
+      - mysql_demo

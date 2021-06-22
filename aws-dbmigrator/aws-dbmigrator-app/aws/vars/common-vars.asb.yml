@@ -1,0 +1,71 @@
+---
+application: dbmigrator
+
+default_aws_region: us-east-1
+default_aws_region_code: use1
+
+# SSM
+
+# Route 53
+ssm_dbmigrator_private_hosted_zone_id_key: /dbmigrator/cfn/route53/hostedzone/private/id
+
+# VPC
+ssm_dbmigrator_vpc_id_key: /dbmigrator/cfn/vpc/id
+ssm_dbmigrator_web_public_subnets_id_key: /dbmigrator/cfn/vpc/subnet/web/public/ids
+ssm_dbmigrator_app_private_subnets_id_key: /dbmigrator/cfn/vpc/subnet/app/private/ids
+ssm_dbmigrator_data_private_subnets_id_key: /dbmigrator/cfn/vpc/subnet/data/private/ids
+
+# SG
+ssm_dbmigrator_sg_db_sql_id_key: /dbmigrator/cfn/ec2/sg/dbsql/id
+
+# DB
+ssm_dbmigrator_rds_cluster_arn_key: /dbmigrator/cfn/rds/cluster/arn
+ssm_dbmigrator_rds_cluster_endpoint_key: /dbmigrator/cfn/rds/cluster/endpoint
+ssm_dbmigrator_rds_jdbc_url_nodb_key: /dbmigrator/cfn/rds/nodb/jdbc/url
+ssm_dbmigrator_rds_jdbc_url_helloworld_key: /dbmigrator/cfn/rds/helloworld/jdbc/url
+
+ssm_dbmigrator_rds_secret_cluster_arn_key: /dbmigrator/rds/cluster/secret/arn
+ssm_dbmigrator_rds_secret_helloworld_arn_key: /dbmigrator/rds/helloworld/secret/arn
+
+# # Lambdas
+lambda_dbinit_name: dbinit
+lambda_dbinit_handler: cloud.spikeseed.helloworld.Handler
+ssm_lambda_dbinit_arn_key: /dbmigrator/cfn/lambda/dbinit/arn
+ssm_lambda_dbinit_current_s3key_key: /dbmigrator/cicd/lambda/dbinit/current/s3key
+ssm_lambda_dbinit_latest_s3key_key: /dbmigrator/cicd/lambda/dbinit/latest/s3key
+
+lambda_dbmigrations_helloworld_name: migrations-helloworld
+lambda_dbmigrations_helloworld_handler: cloud.spikeseed.helloworld.Handler
+ssm_lambda_dbmigrations_helloworld_arn_key: /dbmigrator/cfn/lambda/dbmigrations/helloworld/arn
+ssm_lambda_dbmigrations_helloworld_current_s3key_key: /dbmigrator/cicd/lambda/migrations-helloworld/current/s3key
+
+lambda_helloworld_name: helloworld
+lambda_helloworld_handler: cloud.spikeseed.helloworld.Handler
+ssm_lambda_dbmigrations_helloworld_latest_s3key_key: /dbmigrator/cicd/lambda/migrations-helloworld/latest/s3key
+ssm_lambda_helloworld_latest_s3key_key: /dbmigrator/cicd/lambda/helloworld/latest/s3key
+
+aws_accounts:
+  lab:
+    account_name: spikeseed-labs
+    account_code: l
+    environment: lab
+    # Network
+    dbmigrator_vpc_cidr: 10.68.100.0/24
+    dbmigrator_web_public_subnet_az1_cidr: 10.68.100.128/27
+    dbmigrator_web_public_subnet_az2_cidr: 10.68.100.160/27
+    dbmigrator_app_private_subnet_az1_cidr: 10.68.100.0/27
+    dbmigrator_app_private_subnet_az2_cidr: 10.68.100.32/27
+    dbmigrator_data_private_subnet_az1_cidr: 10.68.100.64/27
+    dbmigrator_data_private_subnet_az2_cidr: 10.68.100.96/27
+    # Route 53
+    dbmigrator_private_domain: "{{ application }}.aws"
+    # RDS
+    mysql_fqdn: mysql.{{ application }}.aws
+    mysql_min_capacity: 1
+    mysql_max_capacity: 1
+    mysql_cluster_secret_name: "t-ew1-{{ application }}-mysql-cluster-secret"
+    mysql_helloworld_secret_name: "t-ew1-{{ application }}-mysql-helloworld-secret"
+    mysql_db_helloworld_name: helloworld_database
+    # S3
+    assets_bucket_name: "l-use1-{{ application }}-assets"
+    logs_bucket_name: "l-use1-{{ application }}-logs"

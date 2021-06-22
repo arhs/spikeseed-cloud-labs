@@ -1,0 +1,134 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    pbk_account: "{{ aws_accounts['lab'] }}"
+    pbk_account_name: "{{ pbk_account.account_name }}"
+    pbk_account_code: "{{ pbk_account.account_code }}"
+    pbk_account_env: "{{ pbk_account.environment }}"
+
+  vars_files:
+    - ../vars/common-vars.asb.yml
+
+  tasks:
+
+# ======================================================================================================================
+# VPC
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/vpc.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountName: "{{ pbk_account_name }}"
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Application: "{{ application }}"
+          VpcCidr: "{{ pbk_account.dbmigrator_vpc_cidr }}"
+          WebPublicSubnetCidrAz1: "{{ pbk_account.dbmigrator_web_public_subnet_az1_cidr }}"
+          WebPublicSubnetCidrAz2: "{{ pbk_account.dbmigrator_web_public_subnet_az2_cidr }}"
+          AppPrivateSubnetCidrAz1: "{{ pbk_account.dbmigrator_app_private_subnet_az1_cidr }}"
+          AppPrivateSubnetCidrAz2: "{{ pbk_account.dbmigrator_app_private_subnet_az2_cidr }}"
+          DataPrivateSubnetCidrAz1: "{{ pbk_account.dbmigrator_data_private_subnet_az1_cidr }}"
+          DataPrivateSubnetCidrAz2: "{{ pbk_account.dbmigrator_data_private_subnet_az2_cidr }}"
+          PrivateDomain: "{{ pbk_account.dbmigrator_private_domain }}"
+          LogsBucketName: "{{ pbk_account.logs_bucket_name }}"
+          SsmVpcIdKey: "{{ ssm_dbmigrator_vpc_id_key  }}"
+          SsmWebPublicSubnetsKey: "{{ ssm_dbmigrator_web_public_subnets_id_key }}"
+          SsmAppPrivateSubnetsKey: "{{ ssm_dbmigrator_app_private_subnets_id_key }}"
+          SsmDataPrivateSubnetsKey: "{{ ssm_dbmigrator_data_private_subnets_id_key }}"
+          SsmPrivateHostedZoneIdKey: "{{ ssm_dbmigrator_private_hosted_zone_id_key }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-vpc"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - vpc
+
+# ======================================================================================================================
+# Security Groups
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        template: "templates/securitygroups.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Application: "{{ application }}"
+          SsmVpcIdKey: "{{ ssm_dbmigrator_vpc_id_key  }}"
+          SsmDbSqlSecurityGroupIdKey: "{{ ssm_dbmigrator_sg_db_sql_id_key }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-securitygroups"
+        local_aws_tags:
+          Application: "{{ application }}"
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - sg
+
+# ======================================================================================================================
+# Aurora Mysql
+# ======================================================================================================================
+
+    - name: "Deploy CloudFormation stack {{ local_stack_name }}"
+      amazon.aws.cloudformation:
+        stack_name: "{{ local_stack_name }}"
+        state: present
+        region: "{{ local_region_name }}"
+        profile: "{{ pbk_account_name }}"
+        capabilities: [ 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND']
+        template: "templates/database.cfn.yml"
+        tags: "{{ local_aws_tags }}"
+        template_parameters:
+          AccountName: "{{ pbk_account_name }}"
+          AccountCode: "{{ pbk_account_code }}"
+          RegionCode: "{{ local_region_code }}"
+          Environment: "{{ pbk_account_env }}"
+          Application: "{{ application }}"
+          ServerType: "{{ local_aws_tags.ServerType }}"
+          SsmVpcIdKey: "{{ ssm_dbmigrator_vpc_id_key }}"
+          SsmPrivateHostedZoneIdKey: "{{ ssm_dbmigrator_private_hosted_zone_id_key }}"
+          SsmPrivateSubnetsKey: "{{ ssm_dbmigrator_data_private_subnets_id_key }}"
+          SsmDbSqlSecurityGroupIdKey: "{{ ssm_dbmigrator_sg_db_sql_id_key }}"
+          DatabaseMinCapacity: "{{ pbk_account.mysql_min_capacity }}"
+          DatabaseMaxCapacity: "{{ pbk_account.mysql_max_capacity }}"
+          SsmDatabaseClusterArnKey: "{{ ssm_dbmigrator_rds_cluster_arn_key }}"
+          SsmDatabaseClusterEndpointKey: "{{ ssm_dbmigrator_rds_cluster_endpoint_key }}"
+          DatabaseFqdn: "{{ pbk_account.mysql_fqdn }}"
+          SsmJdbcUrlKey: "{{ ssm_dbmigrator_rds_jdbc_url_nodb_key }}"
+          SsmDatabaseNameHelloWorldKey: "{{ pbk_account.mysql_db_helloworld_name }}"
+          SsmJdbcUrlHelloWorldKey: "{{ ssm_dbmigrator_rds_jdbc_url_helloworld_key }}"
+          DatabaseClusterSecretName: "{{ pbk_account.mysql_cluster_secret_name }}"
+          DatabaseDbHelloWorldSecretName: "{{ pbk_account.mysql_helloworld_secret_name }}"
+          SsmDbClusterSecretArnKey: "{{ ssm_dbmigrator_rds_secret_cluster_arn_key }}"
+          SsmDbHelloWorldSecretArnKey: "{{ ssm_dbmigrator_rds_secret_helloworld_arn_key }}"
+      vars:
+        local_region_name: "{{ default_aws_region }}"
+        local_region_code: "{{ default_aws_region_code }}"
+        local_stack_name: "{{ pbk_account_code }}-{{ local_region_code }}-{{ application }}-database"
+        local_aws_tags:
+          Application: "{{ application }}"
+          ServerType: mysql
+          Environment: "{{ pbk_account_env }}"
+          Name: "{{ local_stack_name }}"
+      tags:
+        - database

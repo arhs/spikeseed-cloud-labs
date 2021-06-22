@@ -1,0 +1,46 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+      java: corretto11
+    commands:
+      - pip install --upgrade pip
+      - pip --version
+      - pip install awscli --upgrade --user
+      - pip install boto3 --upgrade
+      - pip install ansible --upgrade
+  pre_build:
+    commands:
+      - echo "Starting building/deploying the Application - $(date)"
+
+      - aws configure set profile.spikeseed-labs.credential_source EcsContainer
+      - aws configure set profile.spikeseed-labs.role_arn $ROLE_ARN
+  build:
+    commands:
+      - echo "Current folder $(pwd)"
+      - MAVEN_OPTS="-Dhttps.protocols=TLSv1.2 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
+      - MAVEN_CLI_OPTS="--batch-mode --errors --fail-at-end --show-version"
+      - ls -la
+
+      - ROOT_PATH=$(pwd)
+      - cd $ROOT_PATH/aws/lambdas
+      - mvn $MAVEN_CLI_OPTS package
+
+      - DBINIT_S3_KEY=lambdas/dbinit/dbinit-${CODEBUILD_RESOLVED_SOURCE_VERSION}.zip
+      - aws s3 cp dbinit/target/dbinit.zip s3://$ASSETS_BUCKET_NAME/$DBINIT_S3_KEY --quiet
+      - aws ssm put-parameter --name /dbmigrator/cicd/lambda/dbinit/latest/s3key --value $DBINIT_S3_KEY --type String --overwrite
+
+      - DB_HELLOWORLD_S3_KEY=lambdas/migrations-helloworld/migrations-helloworld-${CODEBUILD_RESOLVED_SOURCE_VERSION}.zip
+      - aws s3 cp migrations-helloworld/target/migrations-helloworld.zip s3://$ASSETS_BUCKET_NAME/$DB_HELLOWORLD_S3_KEY --quiet
+      - aws ssm put-parameter --name /dbmigrator/cicd/lambda/migrations-helloworld/latest/s3key --value $DB_HELLOWORLD_S3_KEY --type String --overwrite
+
+      - HELLOWORLD_S3_KEY=lambdas/helloworld/helloworld-${CODEBUILD_RESOLVED_SOURCE_VERSION}.zip
+      - aws s3 cp helloworld/target/helloworld.zip s3://$ASSETS_BUCKET_NAME/$HELLOWORLD_S3_KEY --quiet
+      - aws ssm put-parameter --name /dbmigrator/cicd/lambda/helloworld/latest/s3key --value $HELLOWORLD_S3_KEY --type String --overwrite
+
+      - cd $ROOT_PATH
+      - ansible-playbook aws/main.asb.yml
+  post_build:
+    commands:
+      - echo "Deployment DONE - $(date)"

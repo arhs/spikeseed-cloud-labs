@@ -1,0 +1,10 @@
+__pycache__
+.classpath
+.idea/
+*.iml
+.project
+.settings/
+target/
+ssm-labs.py
+*.out.yml
+response.json
