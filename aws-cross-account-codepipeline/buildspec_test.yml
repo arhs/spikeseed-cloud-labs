@@ -1,0 +1,12 @@
+---
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  build:
+    commands:
+      - npm -v
+      - npm install
+      - mkdir junit
+      - npm test --coverage

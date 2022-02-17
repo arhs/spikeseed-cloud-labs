@@ -1,0 +1,23 @@
+service: app-cicd
+
+package:
+  exclude:
+    - node_modules/**
+    - doc/**
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: ${opt:stage, 'local'}
+  region: eu-west-1
+  stackName: ${self:provider.stage}-${self:service}-stack
+  timeout: 30
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+          cors: true

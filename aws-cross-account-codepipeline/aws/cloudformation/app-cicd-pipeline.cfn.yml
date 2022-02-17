@@ -1,0 +1,276 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  Application:
+    Type: String
+  GitHubRepo:
+    Type: String
+  GitHubBranch:
+    Type: String
+  GitHubUser:
+    Type: String
+  ArtifactBucket:
+    Type: String
+  DevAccountId:
+    Type: String
+  TestAccountId:
+    Type: String
+  ProdAccountId:
+    Type: String
+  # CICDKMSKey:
+  #   Type: String
+
+Outputs:
+  PipelineUrl:
+    Value: !Sub https://console.aws.amazon.com/codepipeline/home?region=${AWS::Region}#/view/${Pipeline}
+
+Resources:
+  GitHubSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: github/oauth-token
+      Description: GitHub secrets. Replace TO_BE_DEFINED with your oauth token generated.
+      SecretString: '{"oauth-token":"TO_BE_DEFINED"}'
+  CICDNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-notifications"
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+            Service: [codebuild.amazonaws.com]
+        Version: '2012-10-17'
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildPassRoleLimitedAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - 'sts:AssumeRole'
+                Effect: Allow
+                Resource: '*'
+        - PolicyName: CodeBuildLimitedAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - 's3:*'
+                - 'logs:*'
+                - "kms:*"
+                Effect: Allow
+                Resource: '*'
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+            Service: codepipeline.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+      Policies:
+        - PolicyName: AWSCodePipelineLimitedAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - 'iam:PassRole'
+                - 'sts:AssumeRole'
+                Effect: Allow
+                Resource: '*'
+        # - PolicyName: AWSCodePipelineKMSLimitedAccess
+        #   PolicyDocument:
+        #     Version: '2012-10-17'
+        #     Statement:
+        #       - Action:
+        #         - 'kms:Decrypt'
+        #         - 'kms:DescribeKey'
+        #         - 'kms:Encrypt'
+        #         - 'kms:ReEncrypt*'
+        #         - 'kms:GenerateDataKey*'
+        #         Effect: Allow
+        #         Resource: !Ref CICDKMSKey            
+  CodeBuildDeployProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec_deploy.yml
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0
+        Type: LINUX_CONTAINER
+      Name: !Sub ${AWS::StackName}-deploy
+      ServiceRole: !Ref CodeBuildServiceRole
+  CodeBuildTestProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec_test.yml
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0
+        Type: LINUX_CONTAINER
+      Name: !Sub ${AWS::StackName}-test
+      ServiceRole: !Ref CodeBuildServiceRole
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub ${AWS::StackName}-cicd
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      ArtifactStore:
+        Location: !Ref ArtifactBucket
+        Type: S3
+        # EncryptionKey:
+        #     Id: !Ref CICDKMSKey
+        #     Type:  KMS
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Owner: !Ref GitHubUser
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: "{{resolve:secretsmanager:github/oauth-token:SecretString:oauth-token}}"
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: Source
+              RunOrder: 1
+              Namespace: SourceVariables
+        - Name: Build_and_Test
+          Actions:
+            - Name: Build_and_Test
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildTestProject
+                PrimarySource: Source
+              InputArtifacts:
+                - Name: Source
+              OutputArtifacts:
+                - Name: Test_results
+              RunOrder: 1
+        - Name: DEV
+          Actions:
+            - Name: DEV_Deploy_Serverless
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildDeployProject
+                PrimarySource: Source
+                EnvironmentVariables: 
+                  !Sub 
+                  - "[
+                      {\"name\": \"ASSUME_ROLE_ARN\", \"type\": \"PLAINTEXT\", \"value\": \"arn:aws:iam::${AccountId}:role/CICDCrossAccountRole\"},
+                      {\"name\": \"ENVIRONMENT\", \"type\": \"PLAINTEXT\", \"value\": \"${Environment}\"}
+                    ]"
+                  - AccountId: !Ref DevAccountId
+                    Environment: dev
+              InputArtifacts:
+                - Name: Source
+              OutputArtifacts:
+                - Name: DEV_Templates
+              RunOrder: 1
+        - Name: TEST
+          Actions:
+            - Name: TEST_Manual_Approval        
+              ActionTypeId: 
+                Category: Approval 
+                Owner: AWS 
+                Version: 1 
+                Provider: Manual
+              Configuration:
+                CustomData: "#{SourceVariables.CommitMessage} (#{SourceVariables.CommitId})"
+                NotificationArn:  !Sub ${CICDNotificationTopic}
+                ExternalEntityLink: "#{SourceVariables.CommitUrl}"         
+              RunOrder: 1
+            - Name: TEST_Deploy_Serverless
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildDeployProject
+                PrimarySource: Source
+                EnvironmentVariables: 
+                  !Sub 
+                  - "[
+                      {\"name\": \"ASSUME_ROLE_ARN\", \"type\": \"PLAINTEXT\", \"value\": \"arn:aws:iam::${AccountId}:role/CICDCrossAccountRole\"},
+                      {\"name\": \"ENVIRONMENT\", \"type\": \"PLAINTEXT\", \"value\": \"${Environment}\"}
+                    ]"
+                  - AccountId: !Ref TestAccountId
+                    Environment: test
+              InputArtifacts:
+                - Name: Source
+              OutputArtifacts:
+                - Name: TEST_Templates
+              RunOrder: 2
+        - Name: PROD
+          Actions:
+            - Name: PROD_Manual_Approval        
+              ActionTypeId: 
+                Category: Approval 
+                Owner: AWS 
+                Version: 1 
+                Provider: Manual
+              Configuration:
+                CustomData: "#{SourceVariables.CommitMessage} (#{SourceVariables.CommitId})"
+                NotificationArn:  !Sub ${CICDNotificationTopic}
+                ExternalEntityLink: "#{SourceVariables.CommitUrl}"         
+              RunOrder: 1
+            - Name: PROD_Deploy_Serverless
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildDeployProject
+                PrimarySource: Source
+                EnvironmentVariables: 
+                  !Sub 
+                  - "[
+                      {\"name\": \"ASSUME_ROLE_ARN\", \"type\": \"PLAINTEXT\", \"value\": \"arn:aws:iam::${AccountId}:role/CICDCrossAccountRole\"},
+                      {\"name\": \"ENVIRONMENT\", \"type\": \"PLAINTEXT\", \"value\": \"${Environment}\"}
+                    ]"
+                  - AccountId: !Ref ProdAccountId
+                    Environment: prod
+              InputArtifacts:
+                - Name: Source
+              OutputArtifacts:
+                - Name: PROD_Templates
+              RunOrder: 2

@@ -5,3 +5,4 @@ node_modules/
 cdk.out/
 .venv
 .cfn
+.DS_Store

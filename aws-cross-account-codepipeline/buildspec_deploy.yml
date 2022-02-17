@@ -1,0 +1,22 @@
+---
+version: 0.2
+env:
+  variables:
+    ROLE_SESSION_NAME: CICDCrossAccountRole
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+    commands:
+      - echo $ASSUME_ROLE_ARN
+      - echo $ROLE_SESSION_NAME
+      - echo $ENVIRONMENT
+      - TEMP_ROLE=`aws sts assume-role --role-arn $ASSUME_ROLE_ARN --role-session-name $ROLE_SESSION_NAME`
+      - export TEMP_ROLE
+      - export AWS_ACCESS_KEY_ID=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.AccessKeyId')
+      - export AWS_SECRET_ACCESS_KEY=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.SecretAccessKey')
+      - export AWS_SESSION_TOKEN=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.SessionToken')
+  build:
+    commands:
+      - npm i -g serverless
+      - sls deploy --stage $ENVIRONMENT
