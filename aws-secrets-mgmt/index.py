@@ -159,11 +159,3 @@ if __name__ == '__main__':
             delete_secret(SM_CLIENT, secret_name)
     else:
         print('Invalid action')
-
-# python secrets-mgmt.py list
-# python secrets-mgmt.py list-versions my_secret
-# python secrets-mgmt.py get my_secret latest
-# python secrets-mgmt.py dump my_secret latest
-# python secrets-mgmt.py create my_new_secret secret.json
-# python secrets-mgmt.py update my_new_secret secret.json
-# python secrets-mgmt.py delete my_new_secret
