@@ -1,0 +1,8 @@
+Certainly! Apologies for any confusion. The correct response to question 1 is:
+
+1. Which of the following is a key benefit of using a cloud-based disaster recovery strategy?
+   Answer: a) Lower upfront costs
+
+Explanation: One of the significant advantages of utilizing a cloud-based disaster recovery strategy is that it typically involves lower upfront costs compared to traditional on-premises solutions. In traditional setups, organizations need to invest in expensive hardware, infrastructure, and data centers to establish their disaster recovery systems. However, with cloud-based solutions, businesses can leverage the infrastructure and services provided by cloud providers, eliminating the need for significant upfront investments. Instead, they pay for the resources and services on a subscription or usage-based model, which can be more cost-effective and flexible.
+
+In summary, choosing a cloud-based disaster recovery strategy can help organizations reduce their initial capital expenditures and operational costs, making it an attractive option for many businesses.

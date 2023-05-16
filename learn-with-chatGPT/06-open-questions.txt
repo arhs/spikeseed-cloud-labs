@@ -1,0 +1,29 @@
+Q1: What is cloud computing?
+A1: Cloud computing refers to the delivery of computing resources, such as storage, databases, applications, and servers, over the internet. It enables users to access and use these resources on-demand, without the need for local infrastructure or hardware.
+
+Q2: What are the advantages of using cloud computing?
+A2: There are several advantages of using cloud computing, including:
+- Scalability: Cloud resources can be easily scaled up or down based on demand, allowing businesses to efficiently manage their computing needs.
+- Cost savings: Cloud computing eliminates the need for upfront infrastructure investments and ongoing maintenance costs.
+- Accessibility: Users can access cloud services from anywhere with an internet connection, making it convenient for remote work or collaboration.
+- Reliability: Cloud service providers often have redundant systems in place, ensuring high availability and minimizing downtime.
+- Flexibility: Cloud platforms offer a wide range of services and options that can be tailored to meet specific business requirements.
+
+Q3: What is the difference between public, private, and hybrid clouds?
+A3: 
+- Public Cloud: A public cloud is a cloud infrastructure that is owned and operated by a third-party cloud service provider. It is accessible to the public, and resources are shared among multiple users or organizations. Examples of public cloud providers include Amazon Web Services (AWS), Microsoft Azure, and Google Cloud Platform (GCP).
+
+- Private Cloud: A private cloud is a cloud infrastructure that is dedicated to a single organization or entity. It can be located on-premises or hosted by a third-party service provider. Private clouds offer enhanced security, control, and customization options, but they require more upfront investment and maintenance compared to public clouds.
+
+- Hybrid Cloud: A hybrid cloud combines elements of both public and private clouds. It allows organizations to leverage the benefits of both types of clouds by enabling data and applications to be seamlessly shared between them. This approach provides flexibility and allows businesses to take advantage of public cloud scalability while maintaining control over sensitive data or critical workloads in a private cloud environment.
+
+Q4: What is the difference between SaaS, PaaS, and IaaS?
+A4:
+- SaaS (Software as a Service): SaaS refers to a software delivery model where applications are hosted and provided over the internet by a third-party provider. Users can access the software through a web browser or an API without needing to install or manage the underlying infrastructure.
+
+- PaaS (Platform as a Service): PaaS provides a platform and environment for developers to build, deploy, and manage applications. It typically includes infrastructure, runtime environments, development tools, and other services needed to support the application development lifecycle. Developers can focus on coding and application logic without worrying about underlying infrastructure management.
+
+- IaaS (Infrastructure as a Service): IaaS offers virtualized computing resources over the internet. It provides access to virtual machines, storage, networks, and other fundamental computing resources. Users have more control and flexibility over the infrastructure compared to SaaS or PaaS, as they are responsible for managing the operating systems, applications, and data running on the provided infrastructure.
+
+Q5: What is auto-scaling in cloud computing?
+A5: Auto-scaling is a feature provided by cloud platforms that allows automatic adjustment of computing resources based on workload demand. When the workload increases, auto-scaling automatically adds more resources such as virtual machines or containers to handle the increased load. Conversely, when the workload decreases, it scales down the resources to save costs. Auto-scaling ensures optimal performance, cost-efficiency, and responsiveness to fluctuating workload conditions.

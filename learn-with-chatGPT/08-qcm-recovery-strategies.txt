@@ -1,0 +1,41 @@
+Sure! Here are some multiple-choice questions about cloud disaster recovery strategies:
+
+1. Which of the following is a key benefit of using a cloud-based disaster recovery strategy?
+   a) Lower upfront costs
+   b) Higher network latency
+   c) Limited scalability
+   d) Increased data security
+
+2. What is the purpose of a recovery point objective (RPO) in cloud disaster recovery?
+   a) To determine the maximum tolerable downtime
+   b) To measure the time it takes to recover from a disaster
+   c) To define the maximum amount of data loss during a disaster
+   d) To calculate the cost of disaster recovery services
+
+3. Which cloud disaster recovery strategy provides the shortest recovery time objective (RTO)?
+   a) Cold site
+   b) Warm site
+   c) Hot site
+   d) Pilot light
+
+4. What is the primary advantage of using a cloud-based disaster recovery service over traditional on-premises solutions?
+   a) Lower latency
+   b) Higher upfront costs
+   c) Increased control over data
+   d) Elastic scalability
+
+5. Which of the following is an essential component of a cloud-based disaster recovery plan?
+   a) Regular data backups
+   b) Local hardware infrastructure
+   c) Manual failover processes
+   d) Single data center location
+
+And here are the corresponding responses:
+
+1. Answer: a) Lower upfront costs
+2. Answer: c) To define the maximum amount of data loss during a disaster
+3. Answer: c) Hot site
+4. Answer: d) Elastic scalability
+5. Answer: a) Regular data backups
+
+I hope this helps! Let me know if you have any more questions.
