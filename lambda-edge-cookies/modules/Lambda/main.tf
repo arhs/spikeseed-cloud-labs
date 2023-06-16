@@ -8,7 +8,6 @@ resource "aws_lambda_function" "main" {
   memory_size      = var.memory_size
   source_code_hash = data.archive_file.lambda_edge_cookie.output_base64sha256
 
-  # Add the following lifecycle block to publish a version after each update
   lifecycle {
     create_before_destroy = true
     ignore_changes        = [source_code_hash]
