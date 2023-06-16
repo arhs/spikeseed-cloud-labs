@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>New Spikeseed Site</title>
+  </head>
+  <body>
+    <h2>New Spikeseed Site</h2>
+    <p>Do you want to keep the new Spikeseed site?</p>
+    <a id="btnOldVersion" href="#">No, please let redirect me to the old good Spikeseed site</a>
+    <br>
+    <img src="https://spikeseed-new.s3.eu-west-1.amazonaws.com/spikeseed-new.png" alt="Image description">
+
+    <script>
+      const btnOldVersion = document.getElementById("btnOldVersion");
+      btnOldVersion.addEventListener("click", (event) => {
+        event.preventDefault();
+        document.cookie = "version=old";
+        location.reload();
+      });
+    </script>
+  </body>
+</html>
+
+
+

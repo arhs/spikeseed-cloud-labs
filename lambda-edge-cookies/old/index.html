@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Old Spikeseed Site</title>
+  </head>
+  <body>
+    <h2>Old Spikeseed Site</h2>
+    <p>Do you want to try the new Spikeseed site?</p>
+    <a id="btnNewVersion" href="#">Please bring me to the new Spikeseed site</a>
+    <br>
+    <img src="https://spikeseed-old.s3.eu-west-1.amazonaws.com/spikeseed-old.png" alt="Image description">
+
+    <script>
+      const btnNewVersion = document.getElementById("btnNewVersion");
+      btnNewVersion.addEventListener("click", (event) => {
+        event.preventDefault();
+        document.cookie = "version=new";
+        location.reload();
+      });
+    </script>
+  </body>
+</html>
+
+
+
