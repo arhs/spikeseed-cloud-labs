@@ -47,7 +47,7 @@ resource "aws_s3_bucket_policy" "example_bucket_policy" {
   bucket = each.key
 
   policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [
       {
         Sid       = "PublicReadGetObject"
@@ -58,7 +58,7 @@ resource "aws_s3_bucket_policy" "example_bucket_policy" {
       },
     ]
   })
-   lifecycle {
+  lifecycle {
     ignore_changes = [policy]
   }
 
