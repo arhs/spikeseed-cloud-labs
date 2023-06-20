@@ -1,5 +1,5 @@
 resource "aws_iam_role" "lambda_edge_role" {
-  name = "lambda_edge_cookies1"
+  name = "lambda_edge_cookies"
 
   assume_role_policy = <<EOF
 {
@@ -22,7 +22,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "lambda_edge_policy" {
-  name_prefix = "lambda_edge_policy1"
+  name_prefix = "lambda_edge_policy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
