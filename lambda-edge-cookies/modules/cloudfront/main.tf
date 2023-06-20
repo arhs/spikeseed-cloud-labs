@@ -67,6 +67,3 @@ resource "aws_cloudfront_distribution" "cloudfront_distribution" {
     ssl_support_method  = "sni-only"
   }
 }
-
-
-  

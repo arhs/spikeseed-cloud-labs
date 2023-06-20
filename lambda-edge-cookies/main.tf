@@ -1,5 +1,5 @@
-module "CloudFront" {
-  source              = "./modules/CloudFront"
+module "cloudfront" {
+  source              = "./modules/cloudfront"
   lambda_arn          = module.lambda.lambda_function_arn
   lambda_version      = module.lambda.lambda_function_version
   acm_certificate_arn = module.acm.acm_certificate_arn
@@ -10,8 +10,8 @@ module "CloudFront" {
 
 
 
-module "Lambda" {
-  source = "./modules/Lambda"
+module "lambda" {
+  source = "./modules/lambda"
 
   function_name = "lambda_edge_cookie"
   handler       = "lambda_edge_cookie.handler"
@@ -20,8 +20,8 @@ module "Lambda" {
   memory_size   = 128
 }
 
-module "ACM" {
-  source                    = "./modules/ACM"
+module "acm" {
+  source                    = "./modules/acm"
   zone_id                   = "Z3B54DM0BJJFD9"
   cloudfront_hosted_zone_id = module.cloudfront.cloudfront_hosted_zone_id
   cloudfront_domain_name    = module.cloudfront.cloudfront_distribution.domain_name

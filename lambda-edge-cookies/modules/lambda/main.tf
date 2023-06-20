@@ -16,3 +16,4 @@ resource "aws_lambda_function" "main" {
   # Publish a new version when the function code changes
   publish = true
 }
+
