@@ -75,9 +75,9 @@ resource "null_resource" "upload_files" {
   provisioner "local-exec" {
     command = <<EOT
       if [ ${count.index} -eq 0 ]; then
-        aws s3 cp /home/hristost/bitbucket/lambda_edge_cookies/new/index.html s3://${aws_s3_bucket.bucket[count.index].bucket}
+        aws s3 cp ../../new/index.html s3://${aws_s3_bucket.bucket[count.index].bucket}
       else
-        aws s3 cp /home/hristost/bitbucket/lambda_edge_cookies/old/index.html s3://${aws_s3_bucket.bucket[count.index].bucket}
+        aws s3 cp ../../old/index.html s3://${aws_s3_bucket.bucket[count.index].bucket}
       fi
     EOT
   }
