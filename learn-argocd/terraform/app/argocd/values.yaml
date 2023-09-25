@@ -1,0 +1,11 @@
+configs:
+  repositories:
+%{~ for repo in repos }
+    ${repo.name}:
+      name: ${repo.name}
+      password: ${repo.password}
+      project: ${repo.project}
+      type: ${repo.type}
+      url: ${repo.url}
+      username: ${repo.username}
+%{~ endfor }

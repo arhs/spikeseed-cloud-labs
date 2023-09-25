@@ -1,0 +1,11 @@
+rbac:
+  create: true
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: <specify_the_externaldns_role_arn>
+  create: true
+  name: argocd-demo-external-dns
+policy: sync
+sources:
+- ingress
+- service

@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns-controller
+  namespace: argocd
+spec:
+  destination:
+    namespace: kube-system
+    server: {{ .Values.spec.destination.server }}
+  project: in-cluster-apps
+  sources:
+    - repoURL: 'https://kubernetes-sigs.github.io/external-dns'
+      targetRevision: 1.13.1
+      chart: external-dns
+      helm:
+        valueFiles:
+          - $values/config/external-dns-controller/values.override.yaml
+    - repoURL: {{ .Values.spec.source.repoURL }}
+      targetRevision: {{ .Values.spec.source.targetRevision }}
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
