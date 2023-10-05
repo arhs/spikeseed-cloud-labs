@@ -1,0 +1,7 @@
+clusterName: <specify_your_eks_cluster_name>
+region: <specify_your_aws_region>
+replicaCount: 1
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: <specify_the_alb_role_arn>
+  name: argocd-demo-alb-controller
