@@ -90,7 +90,6 @@ module "aws-auth" {
       username = "system:node:{{EC2PrivateDNSName}}"
     }
   ]
-  cluster_name    = module.eks.eks_cluster_name
   create_aws_auth = local.eks.access.aws_auth.create_aws_auth
 }
 

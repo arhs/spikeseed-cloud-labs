@@ -16,7 +16,6 @@ variable "aws_auth_users" {
   type        = list(any)
 }
 
-
 variable "create_aws_auth" {
   default = true
   type    = bool
